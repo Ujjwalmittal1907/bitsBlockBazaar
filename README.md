@@ -39,6 +39,18 @@ Instead, it will copy all the configuration files and the transitive dependencie
 
 You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
 
+## Environment Variables Setup
+
+1. Create a `.env` file in the root directory
+2. Copy the contents from `.env.example` to `.env`
+3. Replace the placeholder values with your actual API keys:
+
+```env
+REACT_APP_X_API_KEY=your_api_key_here
+```
+
+**Note:** Never commit your `.env` file to version control. The `.env` file is already added to `.gitignore`.
+
 ## Learn More
 
 You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
