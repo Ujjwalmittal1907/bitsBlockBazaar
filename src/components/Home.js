@@ -43,16 +43,16 @@ const Home = () => {
       gradient: 'from-blue-600 to-indigo-600',
       icon: <FaChartLine className="w-8 h-8" />,
       description: 'Comprehensive NFT market analysis and insights powered by bitsCrunch',
-      stats: marketData?.analytics ? [
+      stats: marketData?.analytics && marketData.analytics.market_cap > 0 ? [
         { 
           label: 'Market Cap', 
-          value: `$${((marketData.analytics.market_cap || 0) / 1e9).toFixed(2)}B`,
-          change: marketData.analytics.market_cap_change_24h || 0
+          value: `$${((marketData.analytics.market_cap) / 1e9).toFixed(2)}B`,
+          change: marketData.analytics.market_cap_change_24h
         },
         { 
           label: 'Volume 24h', 
-          value: `$${((marketData.analytics.volume_24h || 0) / 1e6).toFixed(2)}M`,
-          change: marketData.analytics.volume_change_24h || 0
+          value: `$${((marketData.analytics.volume_24h) / 1e6).toFixed(2)}M`,
+          change: marketData.analytics.volume_change_24h
         }
       ] : [],
       links: [
@@ -69,16 +69,16 @@ const Home = () => {
       icon: <FaStore className="w-8 h-8" />,
       description: 'Cross-marketplace analytics and performance metrics',
       exploreButton: { path: '/nftmarketplaceoverview', label: 'Explore Marketplace Analytics' },
-      stats: marketData?.traders ? [
+      stats: marketData?.traders && marketData.traders.active_traders > 0 ? [
         { 
           label: 'Active Traders', 
-          value: (marketData.traders.active_traders || 0).toLocaleString(),
-          change: marketData.traders.traders_change_24h || 0
+          value: marketData.traders.active_traders.toLocaleString(),
+          change: marketData.traders.traders_change_24h
         },
         { 
           label: 'Total Volume', 
-          value: `$${((marketData.traders.total_volume || 0) / 1e6).toFixed(2)}M`,
-          change: marketData.traders.volume_change_24h || 0
+          value: `$${(marketData.traders.total_volume / 1e6).toFixed(2)}M`,
+          change: marketData.traders.volume_change_24h
         }
       ] : [],
       links: [
@@ -95,16 +95,16 @@ const Home = () => {
       icon: <FaImage className="w-8 h-8" />,
       description: 'In-depth NFT collection analytics and insights',
       exploreButton: { path: '/collectionoverview', label: 'Explore Collection Analytics' },
-      stats: marketData?.scores ? [
+      stats: marketData?.scores && marketData.scores.top_collections_count > 0 ? [
         { 
           label: 'Top Collections', 
-          value: (marketData.scores.top_collections_count || 0).toLocaleString(),
-          change: marketData.scores.collections_change_24h || 0
+          value: marketData.scores.top_collections_count.toLocaleString(),
+          change: marketData.scores.collections_change_24h
         },
         { 
           label: 'Avg Collection Score', 
-          value: (marketData.scores.average_score || 0).toFixed(2),
-          change: marketData.scores.score_change_24h || 0
+          value: marketData.scores.average_score.toFixed(2),
+          change: marketData.scores.score_change_24h
         }
       ] : [],
       links: [
