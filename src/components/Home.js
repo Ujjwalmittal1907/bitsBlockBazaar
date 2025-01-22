@@ -9,6 +9,7 @@ const Home = () => {
   const { isDark } = useTheme();
   const [marketData, setMarketData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchMarketData = async () => {
@@ -26,6 +27,7 @@ const Home = () => {
         });
       } catch (error) {
         console.error('Error fetching market data:', error);
+        setError('Failed to load market data');
       } finally {
         setLoading(false);
       }
@@ -44,13 +46,13 @@ const Home = () => {
       stats: marketData?.analytics ? [
         { 
           label: 'Market Cap', 
-          value: `$${(marketData.analytics.market_cap / 1e9).toFixed(2)}B`,
-          change: marketData.analytics.market_cap_change_24h
+          value: `$${((marketData.analytics.market_cap || 0) / 1e9).toFixed(2)}B`,
+          change: marketData.analytics.market_cap_change_24h || 0
         },
         { 
           label: 'Volume 24h', 
-          value: `$${(marketData.analytics.volume_24h / 1e6).toFixed(2)}M`,
-          change: marketData.analytics.volume_change_24h
+          value: `$${((marketData.analytics.volume_24h || 0) / 1e6).toFixed(2)}M`,
+          change: marketData.analytics.volume_change_24h || 0
         }
       ] : [],
       links: [
@@ -70,13 +72,13 @@ const Home = () => {
       stats: marketData?.traders ? [
         { 
           label: 'Active Traders', 
-          value: marketData.traders.active_traders.toLocaleString(),
-          change: marketData.traders.traders_change_24h
+          value: (marketData.traders.active_traders || 0).toLocaleString(),
+          change: marketData.traders.traders_change_24h || 0
         },
         { 
           label: 'Total Volume', 
-          value: `$${(marketData.traders.total_volume / 1e6).toFixed(2)}M`,
-          change: marketData.traders.volume_change_24h
+          value: `$${((marketData.traders.total_volume || 0) / 1e6).toFixed(2)}M`,
+          change: marketData.traders.volume_change_24h || 0
         }
       ] : [],
       links: [
@@ -96,13 +98,13 @@ const Home = () => {
       stats: marketData?.scores ? [
         { 
           label: 'Top Collections', 
-          value: marketData.scores.top_collections_count,
-          change: marketData.scores.collections_change_24h
+          value: (marketData.scores.top_collections_count || 0).toLocaleString(),
+          change: marketData.scores.collections_change_24h || 0
         },
         { 
           label: 'Avg Collection Score', 
-          value: marketData.scores.average_score.toFixed(2),
-          change: marketData.scores.score_change_24h
+          value: (marketData.scores.average_score || 0).toFixed(2),
+          change: marketData.scores.score_change_24h || 0
         }
       ] : [],
       links: [
@@ -143,80 +145,91 @@ const Home = () => {
           </div>
         )}
 
-        {/* Three Panel Layout */}
-        <div className="flex-1 flex flex-col lg:flex-row p-4 gap-6">
-          {panels.map((panel, index) => (
-            <motion.div
-              key={panel.id}
-              className={`flex-1 rounded-xl overflow-hidden ${
-                isDark ? 'bg-gray-800' : 'bg-white'
-              } shadow-xl`}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-            >
-              {/* Panel Header */}
-              <div className={`p-6 bg-gradient-to-r ${panel.gradient} text-white`}>
-                <div className="flex items-center justify-between mb-4">
-                  {panel.icon}
-                  <h2 className="text-2xl font-bold">{panel.title}</h2>
-                </div>
-                <p className="text-sm text-white/90">{panel.description}</p>
-                {panel.exploreButton && (
-                  <Link
-                    to={panel.exploreButton.path}
-                    className="inline-block mt-4 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors duration-200"
-                  >
-                    {panel.exploreButton.label}
-                  </Link>
-                )}
-              </div>
+        {/* Error State */}
+        {error && !loading && (
+          <div className="flex justify-center items-center py-8">
+            <div className={`text-lg ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+              {error}
+            </div>
+          </div>
+        )}
 
-              {/* Live Stats */}
-              {!loading && panel.stats.length > 0 && (
-                <div className="grid grid-cols-2 gap-4 p-6">
-                  {panel.stats.map((stat, i) => (
-                    <div key={i} className={`p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                      <p className="text-sm text-gray-500">{stat.label}</p>
-                      <p className="text-xl font-bold">{stat.value}</p>
-                      {stat.change !== undefined && (
-                        <div className={`flex items-center text-sm ${
-                          stat.change >= 0 ? 'text-green-500' : 'text-red-500'
-                        }`}>
-                          {stat.change >= 0 ? <FaArrowUp className="mr-1" /> : <FaArrowDown className="mr-1" />}
-                          {Math.abs(stat.change).toFixed(2)}%
-                        </div>
-                      )}
-                    </div>
+        {/* Three Panel Layout */}
+        {!loading && !error && (
+          <div className="flex-1 flex flex-col lg:flex-row p-4 gap-6">
+            {panels.map((panel, index) => (
+              <motion.div
+                key={panel.id}
+                className={`flex-1 rounded-xl overflow-hidden ${
+                  isDark ? 'bg-gray-800' : 'bg-white'
+                } shadow-xl`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                {/* Panel Header */}
+                <div className={`p-6 bg-gradient-to-r ${panel.gradient} text-white`}>
+                  <div className="flex items-center justify-between mb-4">
+                    {panel.icon}
+                    <h2 className="text-2xl font-bold">{panel.title}</h2>
+                  </div>
+                  <p className="text-sm text-white/90">{panel.description}</p>
+                  {panel.exploreButton && (
+                    <Link
+                      to={panel.exploreButton.path}
+                      className="inline-block mt-4 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors duration-200"
+                    >
+                      {panel.exploreButton.label}
+                    </Link>
+                  )}
+                </div>
+
+                {/* Live Stats */}
+                {panel.stats.length > 0 && (
+                  <div className="grid grid-cols-2 gap-4 p-6">
+                    {panel.stats.map((stat, i) => (
+                      <div key={i} className={`p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                        <p className="text-sm text-gray-500">{stat.label}</p>
+                        <p className="text-xl font-bold">{stat.value}</p>
+                        {stat.change !== undefined && (
+                          <div className={`flex items-center text-sm ${
+                            stat.change >= 0 ? 'text-green-500' : 'text-red-500'
+                          }`}>
+                            {stat.change >= 0 ? <FaArrowUp className="mr-1" /> : <FaArrowDown className="mr-1" />}
+                            {Math.abs(stat.change).toFixed(2)}%
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Navigation Links */}
+                <div className="p-6 space-y-4">
+                  {panel.links.map((link, i) => (
+                    <motion.div
+                      key={i}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Link
+                        to={link.path}
+                        className={`block p-4 rounded-lg ${
+                          isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'
+                        } transition-all duration-300`}
+                      >
+                        <h3 className="text-lg font-semibold mb-1">{link.title}</h3>
+                        <p className={`text-sm ${
+                          isDark ? 'text-gray-400' : 'text-gray-600'
+                        }`}>{link.description}</p>
+                      </Link>
+                    </motion.div>
                   ))}
                 </div>
-              )}
-
-              {/* Navigation Links */}
-              <div className="p-6 space-y-4">
-                {panel.links.map((link, i) => (
-                  <motion.div
-                    key={i}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Link
-                      to={link.path}
-                      className={`block p-4 rounded-lg ${
-                        isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'
-                      } transition-all duration-300`}
-                    >
-                      <h3 className="text-lg font-semibold mb-1">{link.title}</h3>
-                      <p className={`text-sm ${
-                        isDark ? 'text-gray-400' : 'text-gray-600'
-                      }`}>{link.description}</p>
-                    </Link>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
