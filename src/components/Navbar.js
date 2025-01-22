@@ -4,15 +4,31 @@ import { useTheme } from '../context/ThemeContext';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [openSubmenu, setOpenSubmenu] = useState(null);
   const location = useLocation();
   const { isDark } = useTheme();
 
   const isActive = (path) => location.pathname === path;
 
+  const toggleSubmenu = (index) => {
+    setOpenSubmenu(openSubmenu === index ? null : index);
+  };
+
   const navItems = [
     { path: '/', label: 'Home' },
     { path: '/nftmarketplaceoverview', label: 'NFT Marketplace' },
     { path: '/collectionoverview', label: 'Collections' },
+    {
+      path: '#',
+      label: 'NFT Insights',
+      subItems: [
+        { path: '/nfttradersinsights', label: 'Traders Insights' },
+        { path: '/nftwashtradeinsights', label: 'Wash Trade Insights' },
+        { path: '/nftmarketanalyticsreport', label: 'Market Analytics' },
+        { path: '/nftholdersinsights', label: 'Holders Insights' },
+        { path: '/nftscoresinsights', label: 'NFT Scores' },
+      ]
+    }
   ];
 
   return (
@@ -37,18 +53,53 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-300
-                    ${isActive(item.path)
-                      ? 'bg-blue-500 text-white'
-                      : `${isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-900 hover:bg-gray-100'}`
-                    }`}
-                >
-                  {item.label}
-                </Link>
+              {navItems.map((item, index) => (
+                <div key={index} className="relative group">
+                  {item.subItems ? (
+                    <>
+                      <button
+                        onClick={() => toggleSubmenu(index)}
+                        className={`px-3 py-2 rounded-md text-sm font-medium
+                          ${isDark ? 'hover:text-white' : 'hover:text-gray-900'}
+                          ${openSubmenu === index ? 'text-blue-500' : isDark ? 'text-gray-300' : 'text-gray-700'}`}
+                      >
+                        {item.label}
+                      </button>
+                      {openSubmenu === index && (
+                        <div className={`absolute left-0 mt-2 w-48 rounded-md shadow-lg
+                          ${isDark ? 'bg-gray-800' : 'bg-white'}
+                          ring-1 ring-black ring-opacity-5`}>
+                          <div className="py-1" role="menu" aria-orientation="vertical">
+                            {item.subItems.map((subItem, subIndex) => (
+                              <Link
+                                key={subIndex}
+                                to={subItem.path}
+                                className={`block px-4 py-2 text-sm
+                                  ${isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}
+                                  ${isActive(subItem.path) ? 'bg-blue-500 text-white' : ''}`}
+                                role="menuitem"
+                              >
+                                {subItem.label}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <Link
+                      to={item.path}
+                      className={`px-3 py-2 rounded-md text-sm font-medium
+                        ${isActive(item.path)
+                          ? 'bg-blue-500 text-white'
+                          : isDark
+                            ? 'text-gray-300 hover:text-white'
+                            : 'text-gray-700 hover:text-gray-900'}`}
+                    >
+                      {item.label}
+                    </Link>
+                  )}
+                </div>
               ))}
             </div>
           </div>

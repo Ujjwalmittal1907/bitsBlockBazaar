@@ -21,17 +21,24 @@ import CollectionCategories from './components/CollectionCategories';
 import CollectionMetadata from './components/CollectionMetadata';
 import CollectionOverview from './components/CollectionOverview';
 
+// Import NFT insight components from nft folder
+import NFTTradersInsights from './components/nft/nfttradersinsights';
+import NFTWashTradeInsights from './components/nft/nftwashtradeinsights';
+import NFTMarketAnalyticsReport from './components/nft/nftmarketanalyticsreport';
+import NFTHoldersInsights from './components/nft/NFTholdersinsights';
+import NFTScoresInsights from './components/nft/NftscoreresInsights';
+
 const App = () => {
   return (
     <ThemeProvider>
       <Router>
-        <div className="min-h-screen transition-colors duration-300
-          dark:bg-gray-900 bg-gray-50
-          dark:text-white text-gray-900">
+        <div className="min-h-screen transition-colors duration-300 dark:bg-gray-900 bg-gray-50 dark:text-white text-gray-900">
           <Navbar />
           <main className="container mx-auto px-4 py-8">
             <Routes>
               <Route path="/" element={<Home />} />
+              
+              {/* NFT Marketplace Routes */}
               <Route path="/nftmarketplaceoverview" element={<NftMarketplaceOverview />} />
               <Route path="/nftmarketplace" element={<NftMarketplace />} />
               <Route path="/nftmarketplaceanalytics" element={<NftMarketplaceAnalytics />} />
@@ -39,6 +46,8 @@ const App = () => {
               <Route path="/marketplacetraders" element={<MarketplaceTraders />} />
               <Route path="/marketplacewashtraders" element={<MarketplaceWashTraders />} />
               <Route path="/marketplaceanalytics" element={<NftMarketplaceAnalytics />} />
+              
+              {/* NFT Collection Routes */}
               <Route path="/nftcollection" element={<NftCollection />} />
               <Route path="/collectionanalytics" element={<CollectionAnalytics />} />
               <Route path="/collectionholders" element={<CollectionHolders />} />
@@ -48,6 +57,13 @@ const App = () => {
               <Route path="/collectioncategories" element={<CollectionCategories />} />
               <Route path="/collectionmetadata" element={<CollectionMetadata />} />
               <Route path="/collectionoverview" element={<CollectionOverview />} />
+              
+              {/* NFT Insights Routes */}
+              <Route path="/nfttradersinsights" element={<NFTTradersInsights />} />
+              <Route path="/nftwashtradeinsights" element={<NFTWashTradeInsights />} />
+              <Route path="/nftmarketanalyticsreport" element={<NFTMarketAnalyticsReport />} />
+              <Route path="/nftholdersinsights" element={<NFTHoldersInsights />} />
+              <Route path="/nftscoresinsights" element={<NFTScoresInsights />} />
             </Routes>
           </main>
           <ThemeToggle />

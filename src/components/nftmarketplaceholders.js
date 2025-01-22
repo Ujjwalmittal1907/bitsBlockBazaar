@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const NftMarketplaceHolders = () => {
   const [data, setData] = useState([]);
@@ -7,6 +7,15 @@ const NftMarketplaceHolders = () => {
   const [nameFilter, setNameFilter] = useState('');
   const [suggestionFilter, setSuggestionFilter] = useState('');
   const [suggestions, setSuggestions] = useState([]);
+
+  const addFilterOptions = useCallback(() => {
+    if (data && data.length > 0) {
+      const sortedData = data
+        .filter(item => item.holders_change !== null && item.holders_change !== undefined)
+        .sort((a, b) => b.holders_change - a.holders_change);
+      setSuggestions(sortedData.slice(0, 3));
+    }
+  }, [data]);
 
   useEffect(() => {
     const options = {
@@ -19,27 +28,10 @@ const NftMarketplaceHolders = () => {
       .then(res => {
         setData(res.data);
         setFilteredData(res.data);
-        const sortedData = res.data
-          .filter(item => item.holders_change !== null && item.holders_change !== undefined)
-          .sort((a, b) => b.holders_change - a.holders_change);
-        setSuggestions(sortedData.slice(0, 3));
+        addFilterOptions();
       })
       .catch(err => console.error(err));
-  }, []);
-
-  useEffect(() => {
-    let filtered = data;
-    if (blockchainFilter) {
-      filtered = filtered.filter(item => item.blockchain === blockchainFilter);
-    }
-    if (nameFilter) {
-      filtered = filtered.filter(item => item.name.toLowerCase().includes(nameFilter.toLowerCase()));
-    }
-    if (suggestionFilter) {
-      filtered = filtered.filter(item => getSuggestion(item).text === suggestionFilter);
-    }
-    setFilteredData(filtered);
-  }, [blockchainFilter, nameFilter, suggestionFilter, data]);
+  }, [addFilterOptions]);
 
   const getSuggestion = (item) => {
     if (item.holders_change > 50) {
@@ -52,6 +44,24 @@ const NftMarketplaceHolders = () => {
       return { text: "Stable holder activity.", color: "text-green-500" };
     }
   };
+
+  const filterAndSortCollections = useCallback(() => {
+    let filtered = data;
+    if (blockchainFilter) {
+      filtered = filtered.filter(item => item.blockchain === blockchainFilter);
+    }
+    if (nameFilter) {
+      filtered = filtered.filter(item => item.name.toLowerCase().includes(nameFilter.toLowerCase()));
+    }
+    if (suggestionFilter) {
+      filtered = filtered.filter(item => getSuggestion(item).text === suggestionFilter);
+    }
+    setFilteredData(filtered);
+  }, [blockchainFilter, nameFilter, suggestionFilter, data, getSuggestion]);
+
+  useEffect(() => {
+    filterAndSortCollections();
+  }, [filterAndSortCollections]);
 
   return (
     <div className="p-6 font-sans bg-gray-900 text-white min-h-screen">
