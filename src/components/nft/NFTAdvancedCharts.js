@@ -27,13 +27,13 @@ const NFTAdvancedCharts = ({ data }) => {
     padding: '12px',
   };
 
-  // Sample data transformation (replace with actual data)
+  // Transform data for visualization
   const transformedData = data?.holders_trend?.map((value, index) => ({
     timestamp: data.block_dates[index],
     holders: value,
     whales: data.holders_whales_trend[index],
-    volume: Math.random() * 1000, // Replace with actual volume data
-    price: Math.random() * 10, // Replace with actual price data
+    volume: data.volume_trend?.[index] || 0,
+    price: data.price_trend?.[index] || 0,
   })) || [];
 
   const CustomTooltip = ({ active, payload, label }) => {

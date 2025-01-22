@@ -101,6 +101,18 @@ const CollectionAnalytics = () => {
     }));
   };
 
+  // Predefined color palette for charts
+  const colorPalette = [
+    { bg: 'rgba(59, 130, 246, 0.6)', border: 'rgba(59, 130, 246, 1)' }, // Blue
+    { bg: 'rgba(16, 185, 129, 0.6)', border: 'rgba(16, 185, 129, 1)' }, // Green
+    { bg: 'rgba(139, 92, 246, 0.6)', border: 'rgba(139, 92, 246, 1)' }, // Purple
+    { bg: 'rgba(245, 158, 11, 0.6)', border: 'rgba(245, 158, 11, 1)' }, // Orange
+    { bg: 'rgba(239, 68, 68, 0.6)', border: 'rgba(239, 68, 68, 1)' },   // Red
+    { bg: 'rgba(236, 72, 153, 0.6)', border: 'rgba(236, 72, 153, 1)' }  // Pink
+  ];
+
+  const getColor = (index) => colorPalette[index % colorPalette.length];
+
   const salesData = {
     labels: filteredData.map(item => item.collection || item.contract_address),
     datasets: highlightData([
@@ -133,7 +145,7 @@ const CollectionAnalytics = () => {
       {
         label: 'Assets',
         data: filteredData.map(item => item.assets || 0),
-        backgroundColor: filteredData.map(() => `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.6)`),
+        backgroundColor: filteredData.map((_, index) => getColor(index).bg),
         borderColor: 'rgba(255, 255, 255, 1)',
         borderWidth: 1,
       },
@@ -144,14 +156,17 @@ const CollectionAnalytics = () => {
     labels: filteredData.length > 0 ? filteredData[0].block_dates : [],
     datasets: highlightData(filteredData
       .filter(item => selectedCollections.includes(item.collection || item.contract_address))
-      .map((item, index) => ({
-        label: item.collection || item.contract_address,
-        data: item.sales_trend,
-        fill: false,
-        backgroundColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.6)`,
-        borderColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`,
-        tension: 0.4,
-      }))),
+      .map((item, index) => {
+        const color = getColor(index);
+        return {
+          label: item.collection || item.contract_address,
+          data: item.sales_trend,
+          fill: false,
+          backgroundColor: color.bg,
+          borderColor: color.border,
+          tension: 0.4,
+        };
+      })),
   };
 
   const renderGraph = () => {
