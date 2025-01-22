@@ -1,78 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { NFTInsightsAPI } from '../../api/nftInsightsEndpoints';
-import { useTheme } from '../../context/ThemeContext';
 import ModernLoader from '../ModernLoader';
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
-import BackButton from '../../components/BackButton';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const NFTMarketAnalyticsReport = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [timeRange, setTimeRange] = useState('24h');
-  const [chartType, setChartType] = useState('line');
   const [selectedMetric, setSelectedMetric] = useState('volume');
-  const { isDark } = useTheme();
-
-  const timeRanges = [
-    { value: '24h', label: 'Last 24 Hours' },
-    { value: '7d', label: 'Last 7 Days' },
-    { value: '30d', label: 'Last 30 Days' },
-    { value: '90d', label: 'Last 90 Days' }
-  ];
-
-  const metrics = [
-    { value: 'volume', label: 'Trading Volume' },
-    { value: 'sales', label: 'Number of Sales' },
-    { value: 'avgPrice', label: 'Average Price' },
-    { value: 'marketCap', label: 'Market Cap' },
-    { value: 'uniqueTraders', label: 'Unique Traders' }
-  ];
+  const [timeRange, setTimeRange] = useState('24h');
+  const [chartType, setChartType] = useState('area');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
-        const [marketAnalytics, marketScores] = await Promise.all([
-          NFTInsightsAPI.getMarketAnalytics({
-            timeRange,
-            metrics: [selectedMetric],
-            aggregation: 'hourly'
-          }),
-          NFTInsightsAPI.getMarketScores({ timeRange })
-        ]);
-        
-        if (marketAnalytics?.data && marketScores?.data) {
-          setData({
-            analytics: marketAnalytics.data,
-            scores: marketScores.data
-          });
+        const response = await NFTInsightsAPI.getMarketAnalytics();
+        const result = await response.json();
+        if (result?.data?.[0]) {
+          setData(result.data[0]);
         } else {
           setError('Invalid data format received');
         }
@@ -85,84 +30,7 @@ const NFTMarketAnalyticsReport = () => {
     };
 
     fetchData();
-  }, [timeRange, selectedMetric]);
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      mode: 'index',
-      intersect: false,
-    },
-    plugins: {
-      legend: {
-        position: 'top',
-        labels: {
-          color: isDark ? '#fff' : '#000'
-        }
-      },
-      title: {
-        display: true,
-        text: `NFT Market ${metrics.find(m => m.value === selectedMetric)?.label || ''} Analysis`,
-        color: isDark ? '#fff' : '#000'
-      }
-    },
-    scales: {
-      x: {
-        grid: {
-          color: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-        },
-        ticks: {
-          color: isDark ? '#fff' : '#000'
-        }
-      },
-      y: {
-        grid: {
-          color: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-        },
-        ticks: {
-          color: isDark ? '#fff' : '#000'
-        }
-      }
-    }
-  };
-
-  const doughnutOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'right',
-        labels: {
-          color: isDark ? '#fff' : '#000'
-        }
-      }
-    }
-  };
-
-  const renderChart = () => {
-    if (!data?.analytics?.timeline) return null;
-
-    const chartData = {
-      labels: data.analytics.timeline.map(item => new Date(item.timestamp).toLocaleString()),
-      datasets: [
-        {
-          label: metrics.find(m => m.value === selectedMetric)?.label,
-          data: data.analytics.timeline.map(item => item[selectedMetric]),
-          borderColor: 'rgb(99, 102, 241)',
-          backgroundColor: chartType === 'line' 
-            ? 'rgba(99, 102, 241, 0.2)'
-            : 'rgb(99, 102, 241)',
-          fill: chartType === 'line',
-          tension: 0.4
-        }
-      ]
-    };
-
-    return chartType === 'line' 
-      ? <Line options={chartOptions} data={chartData} height={400} />
-      : <Bar options={chartOptions} data={chartData} height={400} />;
-  };
+  }, []);
 
   if (loading) {
     return <ModernLoader text="Loading Market Analytics..." />;
@@ -170,225 +38,354 @@ const NFTMarketAnalyticsReport = () => {
 
   if (error) {
     return (
-      <div className={`text-center p-4 ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+      <div className="text-center text-red-500 p-4">
         {error}
       </div>
     );
   }
 
-  return (
-    <div className={`container mx-auto p-4 ${isDark ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'} min-h-screen`}>
-      <BackButton />
-      <div className="flex flex-col items-center justify-center">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">NFT Market Analytics</h1>
-          <p className="text-gray-500">
-            Powered by bitsCrunch APIs - Comprehensive market analysis and insights
+  if (!data) {
+    return (
+      <div className="text-center text-gray-500 p-4">
+        No market analytics available
+      </div>
+    );
+  }
+
+  const formatNumber = (value, isPrice = false) => {
+    if (!value) return '0';
+    value = parseFloat(value);
+    if (isNaN(value)) return '0';
+    
+    if (isPrice) {
+      if (value >= 1000000) {
+        return `$${(value / 1000000).toFixed(2)}M`;
+      } else if (value >= 1000) {
+        return `$${(value / 1000).toFixed(2)}K`;
+      }
+      return `$${value.toFixed(2)}`;
+    }
+    
+    return value.toLocaleString();
+  };
+
+  const getPercentageChange = (value) => {
+    if (!value) return '0%';
+    const percentage = value * 100;
+    return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
+  };
+
+  const getMetricData = () => {
+    const metrics = {
+      volume: {
+        trend: data.volume_trend,
+        label: 'Volume',
+        color: '#3B82F6',
+        current: data.volume,
+        change: data.volume_change,
+        isPrice: true
+      },
+      sales: {
+        trend: data.sales_trend,
+        label: 'Sales',
+        color: '#10B981',
+        current: data.sales,
+        change: data.sales_change,
+        isPrice: false
+      },
+      transactions: {
+        trend: data.transactions_trend,
+        label: 'Transactions',
+        color: '#8B5CF6',
+        current: data.transactions,
+        change: data.transactions_change,
+        isPrice: false
+      },
+      transfers: {
+        trend: data.transfers_trend,
+        label: 'Transfers',
+        color: '#F59E0B',
+        current: data.transfers,
+        change: data.transfers_change,
+        isPrice: false
+      }
+    };
+    return metrics[selectedMetric];
+  };
+
+  const metricData = getMetricData();
+  const chartData = metricData.trend
+    .slice(timeRange === '12h' ? -12 : -24)
+    .map((value, index) => ({
+      time: new Date(data.block_dates[index]).toLocaleTimeString(),
+      value: value
+    }));
+
+  // Custom tooltip for the chart
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-[#1E293B] p-3 rounded-lg border border-gray-700">
+          <p className="text-gray-400">{label}</p>
+          <p className="font-semibold" style={{ color: metricData.color }}>
+            {formatNumber(payload[0].value, metricData.isPrice)}
           </p>
         </div>
+      );
+    }
+    return null;
+  };
 
-        {/* Controls */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {/* Time Range Selector */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Time Range</label>
-            <select
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
-              className={`w-full p-2 rounded-lg border ${
-                isDark 
-                  ? 'bg-gray-800 border-gray-700 text-white' 
-                  : 'bg-white border-gray-300'
-              }`}
-            >
-              {timeRanges.map(range => (
-                <option key={range.value} value={range.value}>
-                  {range.label}
-                </option>
-              ))}
-            </select>
-          </div>
+  const renderChart = () => {
+    const commonProps = {
+      data: chartData,
+      margin: { top: 10, right: 30, left: 0, bottom: 0 }
+    };
 
-          {/* Metric Selector */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Metric</label>
-            <select
-              value={selectedMetric}
-              onChange={(e) => setSelectedMetric(e.target.value)}
-              className={`w-full p-2 rounded-lg border ${
-                isDark 
-                  ? 'bg-gray-800 border-gray-700 text-white' 
-                  : 'bg-white border-gray-300'
-              }`}
-            >
-              {metrics.map(metric => (
-                <option key={metric.value} value={metric.value}>
-                  {metric.label}
-                </option>
-              ))}
-            </select>
-          </div>
+    const commonAxisProps = {
+      stroke: '#64748B',
+      tick: { fill: '#64748B' },
+      tickLine: { stroke: '#64748B' }
+    };
 
-          {/* Chart Type Selector */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Chart Type</label>
-            <select
-              value={chartType}
-              onChange={(e) => setChartType(e.target.value)}
-              className={`w-full p-2 rounded-lg border ${
-                isDark 
-                  ? 'bg-gray-800 border-gray-700 text-white' 
-                  : 'bg-white border-gray-300'
-              }`}
-            >
-              <option value="line">Line Chart</option>
-              <option value="bar">Bar Chart</option>
-            </select>
+    switch (chartType) {
+      case 'area':
+        return (
+          <AreaChart {...commonProps}>
+            <defs>
+              <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={metricData.color} stopOpacity={0.3}/>
+                <stop offset="95%" stopColor={metricData.color} stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="time" {...commonAxisProps} />
+            <YAxis 
+              {...commonAxisProps}
+              tickFormatter={(value) => formatNumber(value, metricData.isPrice)}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke={metricData.color}
+              fillOpacity={1}
+              fill="url(#colorGradient)"
+            />
+          </AreaChart>
+        );
+
+      case 'line':
+        return (
+          <LineChart {...commonProps}>
+            <XAxis dataKey="time" {...commonAxisProps} />
+            <YAxis 
+              {...commonAxisProps}
+              tickFormatter={(value) => formatNumber(value, metricData.isPrice)}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke={metricData.color}
+              strokeWidth={2}
+              dot={{ fill: metricData.color }}
+              activeDot={{ r: 6 }}
+            />
+          </LineChart>
+        );
+
+      case 'bar':
+        return (
+          <BarChart {...commonProps}>
+            <XAxis dataKey="time" {...commonAxisProps} />
+            <YAxis 
+              {...commonAxisProps}
+              tickFormatter={(value) => formatNumber(value, metricData.isPrice)}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar
+              dataKey="value"
+              fill={metricData.color}
+              opacity={0.8}
+              radius={[4, 4, 0, 0]}
+            />
+          </BarChart>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0F172A] text-white p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">NFT Analytics</h1>
+          <div className="flex items-center space-x-4">
+            <button className="bg-[#1E293B] px-4 py-2 rounded-lg text-sm hover:bg-[#2D3748] transition-colors">
+              Refresh
+            </button>
           </div>
         </div>
 
-        {/* Key Metrics Grid */}
-        {data?.analytics?.metrics && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {Object.entries(data.analytics.metrics).map(([key, value]) => (
-              <div
-                key={key}
-                className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}
+        {/* Main Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Trading Volume */}
+          <div className="bg-[#1E293B] rounded-lg p-6">
+            <h3 className="text-gray-400 mb-2">Trading Volume</h3>
+            <div className="flex items-baseline space-x-2">
+              <span className="text-2xl font-bold text-blue-500">
+                {formatNumber(data.volume, true)}
+              </span>
+              <span className={`text-sm ${data.volume_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {getPercentageChange(data.volume_change)} change
+              </span>
+            </div>
+          </div>
+
+          {/* Total Sales */}
+          <div className="bg-[#1E293B] rounded-lg p-6">
+            <h3 className="text-gray-400 mb-2">Total Sales</h3>
+            <div className="flex items-baseline space-x-2">
+              <span className="text-2xl font-bold text-green-500">
+                {formatNumber(data.sales)}
+              </span>
+              <span className={`text-sm ${data.sales_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {getPercentageChange(data.sales_change)} change
+              </span>
+            </div>
+          </div>
+
+          {/* Transactions */}
+          <div className="bg-[#1E293B] rounded-lg p-6">
+            <h3 className="text-gray-400 mb-2">Transactions</h3>
+            <div className="flex items-baseline space-x-2">
+              <span className="text-2xl font-bold text-purple-500">
+                {formatNumber(data.transactions)}
+              </span>
+              <span className={`text-sm ${data.transactions_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {getPercentageChange(data.transactions_change)} change
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Chart Controls and Chart */}
+        <div className="bg-[#1E293B] rounded-lg p-6">
+          <div className="flex flex-wrap gap-4 mb-6">
+            {/* Metric Selector */}
+            <div className="flex items-center space-x-2">
+              <label className="text-gray-400">Metric:</label>
+              <select
+                className="bg-[#2D3748] text-white px-3 py-1.5 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-500"
+                value={selectedMetric}
+                onChange={(e) => setSelectedMetric(e.target.value)}
               >
-                <h3 className="text-sm font-medium text-gray-500 mb-2">
-                  {key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                </h3>
-                <p className="text-2xl font-bold">
-                  {typeof value === 'number'
-                    ? value.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })
-                    : value}
-                </p>
-                {data.analytics.changes?.[`${key}_change`] && (
-                  <div className={`flex items-center text-sm mt-2 ${
-                    data.analytics.changes[`${key}_change`] >= 0 
-                      ? 'text-green-500' 
-                      : 'text-red-500'
-                  }`}>
-                    {data.analytics.changes[`${key}_change`] >= 0 ? '↑' : '↓'}
-                    {Math.abs(data.analytics.changes[`${key}_change`]).toFixed(2)}%
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+                <option value="volume">Volume</option>
+                <option value="sales">Sales</option>
+                <option value="transactions">Transactions</option>
+                <option value="transfers">Transfers</option>
+              </select>
+            </div>
 
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Main Metric Chart */}
-          <div className={`p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-            <h2 className="text-xl font-semibold mb-4">Trend Analysis</h2>
-            <div className="h-[400px]">
+            {/* Time Range Selector */}
+            <div className="flex items-center space-x-2">
+              <label className="text-gray-400">Time Range:</label>
+              <select
+                className="bg-[#2D3748] text-white px-3 py-1.5 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-500"
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+              >
+                <option value="24h">24 Hours</option>
+                <option value="12h">12 Hours</option>
+              </select>
+            </div>
+
+            {/* Chart Type Selector */}
+            <div className="flex items-center space-x-2">
+              <label className="text-gray-400">Chart Type:</label>
+              <select
+                className="bg-[#2D3748] text-white px-3 py-1.5 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-500"
+                value={chartType}
+                onChange={(e) => setChartType(e.target.value)}
+              >
+                <option value="area">Area</option>
+                <option value="line">Line</option>
+                <option value="bar">Bar</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">{timeRange === '24h' ? '24-Hour' : '12-Hour'} {metricData.label} Trend</h2>
+            <div className="bg-[#2D3748] px-3 py-1 rounded-lg">
+              <p className="text-sm">Current: {formatNumber(metricData.current, metricData.isPrice)}</p>
+              <p className={`text-xs ${metricData.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {getPercentageChange(metricData.change)} change
+              </p>
+            </div>
+          </div>
+          
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
               {renderChart()}
-            </div>
+            </ResponsiveContainer>
           </div>
-
-          {/* Market Distribution */}
-          {data?.analytics?.distribution && (
-            <div className={`p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-              <h2 className="text-xl font-semibold mb-4">Market Distribution</h2>
-              <div className="h-[400px]">
-                <Doughnut
-                  options={doughnutOptions}
-                  data={{
-                    labels: Object.keys(data.analytics.distribution),
-                    datasets: [{
-                      data: Object.values(data.analytics.distribution),
-                      backgroundColor: [
-                        'rgba(99, 102, 241, 0.8)',
-                        'rgba(168, 85, 247, 0.8)',
-                        'rgba(236, 72, 153, 0.8)',
-                        'rgba(239, 68, 68, 0.8)',
-                        'rgba(34, 197, 94, 0.8)'
-                      ]
-                    }]
-                  }}
-                />
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Market Health Score */}
-        {data?.scores && (
-          <div className={`p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg mb-8`}>
-            <h2 className="text-xl font-semibold mb-4">Market Health Analysis</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <h3 className="text-lg font-medium mb-2">Overall Health Score</h3>
-                <div className={`text-4xl font-bold ${
-                  data.scores.health_score >= 7 ? 'text-green-500' :
-                  data.scores.health_score >= 5 ? 'text-yellow-500' :
-                  'text-red-500'
-                }`}>
-                  {data.scores.health_score.toFixed(1)}/10
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-medium mb-2">Market Sentiment</h3>
-                <div className={`text-xl font-medium ${
-                  data.scores.sentiment === 'positive' ? 'text-green-500' :
-                  data.scores.sentiment === 'neutral' ? 'text-yellow-500' :
-                  'text-red-500'
-                }`}>
-                  {data.scores.sentiment.charAt(0).toUpperCase() + data.scores.sentiment.slice(1)}
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-medium mb-2">Risk Level</h3>
-                <div className={`text-xl font-medium ${
-                  data.scores.risk_level === 'low' ? 'text-green-500' :
-                  data.scores.risk_level === 'medium' ? 'text-yellow-500' :
-                  'text-red-500'
-                }`}>
-                  {data.scores.risk_level.charAt(0).toUpperCase() + data.scores.risk_level.slice(1)}
-                </div>
-              </div>
+        {/* Market Status */}
+        <div className="bg-[#1E293B] rounded-lg p-6">
+          <h2 className="text-xl font-bold mb-4">Market Status</h2>
+          <div className="grid grid-cols-3 gap-6">
+            <div>
+              <h3 className="text-gray-400 mb-1">Blockchain</h3>
+              <p className="text-lg font-semibold capitalize">{data.blockchain}</p>
+              <p className="text-sm text-gray-500">Network</p>
+            </div>
+            <div>
+              <h3 className="text-gray-400 mb-1">Chain ID</h3>
+              <p className="text-lg font-semibold">{data.chain_id}</p>
+              <p className="text-sm text-gray-500">Network identifier</p>
+            </div>
+            <div>
+              <h3 className="text-gray-400 mb-1">Last Updated</h3>
+              <p className="text-lg font-semibold">
+                {new Date(data.updated_at).toLocaleString('en-US', {
+                  month: 'numeric',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                })}
+              </p>
+              <p className="text-sm text-gray-500">Latest data timestamp</p>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Insights and Recommendations */}
-        {data?.analytics?.insights && (
-          <div className={`rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-            <div className="p-6 border-b border-gray-700">
-              <h2 className="text-xl font-semibold">Market Insights</h2>
+        {/* Market Metrics */}
+        <div className="bg-[#1E293B] rounded-lg p-6">
+          <h2 className="text-xl font-bold mb-4">Market Metrics</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-gray-400 mb-2">Average Price per Sale</h3>
+              <p className="text-2xl font-bold">
+                {formatNumber(data.volume / data.sales, true)}
+              </p>
+              <p className="text-sm text-gray-500">trading volume / total sales</p>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {data.analytics.insights.map((insight, index) => (
-                  <div
-                    key={index}
-                    className={`p-4 rounded-lg ${
-                      isDark ? 'bg-gray-700' : 'bg-gray-50'
-                    }`}
-                  >
-                    <h3 className="font-medium mb-2">{insight.title}</h3>
-                    <p className="text-sm text-gray-500">{insight.description}</p>
-                    {insight.impact && (
-                      <div className={`mt-2 px-2 py-1 rounded text-sm inline-block ${
-                        insight.impact === 'positive' ? 'bg-green-500/20 text-green-500' :
-                        insight.impact === 'neutral' ? 'bg-yellow-500/20 text-yellow-500' :
-                        'bg-red-500/20 text-red-500'
-                      }`}>
-                        Impact: {insight.impact.charAt(0).toUpperCase() + insight.impact.slice(1)}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+            <div>
+              <h3 className="text-gray-400 mb-2">Transfer Rate</h3>
+              <p className="text-2xl font-bold">
+                {((data.transfers / data.transactions) * 100).toFixed(2)}%
+              </p>
+              <p className="text-sm text-gray-500">transfers per transaction</p>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

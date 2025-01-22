@@ -34,96 +34,148 @@ ChartJS.register(
 const NFTTradersInsights = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('24h');
-  const [traderType, setTraderType] = useState('all');
-  const [selectedMetric, setSelectedMetric] = useState('volume');
   const [error, setError] = useState(null);
   const { isDark } = useTheme();
-
-  const timeRanges = [
-    { value: '24h', label: 'Last 24 Hours' },
-    { value: '7d', label: 'Last 7 Days' },
-    { value: '30d', label: 'Last 30 Days' }
-  ];
-
-  const traderTypes = [
-    { value: 'all', label: 'All Traders' },
-    { value: 'whales', label: 'Whale Traders' },
-    { value: 'active', label: 'Most Active' },
-    { value: 'profitable', label: 'Most Profitable' }
-  ];
-
-  const metrics = [
-    { value: 'volume', label: 'Trading Volume' },
-    { value: 'trades', label: 'Number of Trades' },
-    { value: 'profit', label: 'Profit/Loss' },
-    { value: 'unique_nfts', label: 'Unique NFTs' }
-  ];
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [tradersData, washTradeData] = await Promise.all([
-          NFTInsightsAPI.getTradersInsights({
-            timeRange,
-            traderType,
-            metrics: [selectedMetric]
-          }),
-          NFTInsightsAPI.getWashTradeInsights({ timeRange })
-        ]);
+        setError(null);
         
-        if (tradersData?.data && washTradeData?.data) {
-          setData({
-            traders: tradersData.data,
-            washTrade: washTradeData.data
-          });
+        const response = await NFTInsightsAPI.getTradersInsights();
+        const result = await response.json();
+        
+        if (result?.data?.[0]) {
+          setData(result.data[0]);
         } else {
           setError('Invalid data format received');
         }
       } catch (err) {
-        console.error('Error fetching traders data:', err);
-        setError('Failed to fetch traders data');
+        console.error(err);
+        setError('Failed to fetch trader insights');
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [timeRange, traderType, selectedMetric]);
+  }, []);
+
+  const formatNumber = (value) => {
+    if (!value) return '0';
+    return value.toLocaleString();
+  };
+
+  const getPercentageChange = (value) => {
+    if (!value) return '0%';
+    const percentage = value * 100;
+    return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-4">
+        <BackButton />
+        <ModernLoader text="Loading Trader Insights..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-4">
+        <BackButton />
+        <div className="text-center text-red-500 p-4">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  const lineChartData = {
+    labels: data.block_dates.map(date => {
+      const d = new Date(date);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }),
+    datasets: [
+      {
+        label: 'Total Traders',
+        data: data.traders_trend,
+        borderColor: '#3B82F6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        fill: true,
+        tension: 0.4
+      },
+      {
+        label: 'Buyers',
+        data: data.traders_buyers_trend,
+        borderColor: '#10B981',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        fill: true,
+        tension: 0.4
+      },
+      {
+        label: 'Sellers',
+        data: data.traders_sellers_trend,
+        borderColor: '#F59E0B',
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        fill: true,
+        tension: 0.4
+      }
+    ]
+  };
+
+  const doughnutData = {
+    labels: ['Buyers', 'Sellers'],
+    datasets: [{
+      data: [data.traders_buyers, data.traders_sellers],
+      backgroundColor: [
+        'rgba(16, 185, 129, 0.8)',
+        'rgba(245, 158, 11, 0.8)'
+      ],
+      borderColor: [
+        'rgba(16, 185, 129, 1)',
+        'rgba(245, 158, 11, 1)'
+      ],
+      borderWidth: 1
+    }]
+  };
 
   const chartOptions = {
     responsive: true,
-    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top',
         labels: {
-          color: isDark ? '#fff' : '#000'
+          color: isDark ? '#E5E7EB' : '#1F2937'
         }
       },
-      title: {
-        display: true,
-        text: `${metrics.find(m => m.value === selectedMetric)?.label} Analysis`,
-        color: isDark ? '#fff' : '#000'
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+        titleColor: isDark ? '#E5E7EB' : '#1F2937',
+        bodyColor: isDark ? '#E5E7EB' : '#1F2937',
+        borderColor: isDark ? '#374151' : '#E5E7EB',
+        borderWidth: 1
       }
     },
     scales: {
-      y: {
-        beginAtZero: true,
-        grid: {
-          color: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-        },
-        ticks: {
-          color: isDark ? '#fff' : '#000'
-        }
-      },
       x: {
         grid: {
-          color: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+          color: isDark ? '#374151' : '#E5E7EB'
         },
         ticks: {
-          color: isDark ? '#fff' : '#000'
+          color: isDark ? '#E5E7EB' : '#1F2937'
+        }
+      },
+      y: {
+        grid: {
+          color: isDark ? '#374151' : '#E5E7EB'
+        },
+        ticks: {
+          color: isDark ? '#E5E7EB' : '#1F2937'
         }
       }
     }
@@ -131,286 +183,94 @@ const NFTTradersInsights = () => {
 
   const doughnutOptions = {
     responsive: true,
-    maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'right',
+        position: 'bottom',
         labels: {
-          color: isDark ? '#fff' : '#000'
+          color: isDark ? '#E5E7EB' : '#1F2937'
         }
       }
     }
   };
 
-  if (loading) {
-    return <ModernLoader text="Loading Traders Insights..." />;
-  }
-
-  if (error) {
-    return (
-      <div className={`text-center p-4 ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-        {error}
-      </div>
-    );
-  }
-
   return (
-    <div className={`container mx-auto p-4 ${isDark ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <BackButton />
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">NFT Traders Insights</h1>
-        <p className="text-gray-500">
-          Powered by bitsCrunch APIs - Advanced trader behavior analysis
-        </p>
-      </div>
-
-      {/* Controls */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {/* Time Range Selector */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Time Range</label>
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
-            className={`w-full p-2 rounded-lg border ${
-              isDark 
-                ? 'bg-gray-800 border-gray-700 text-white' 
-                : 'bg-white border-gray-300'
-            }`}
-          >
-            {timeRanges.map(range => (
-              <option key={range.value} value={range.value}>
-                {range.label}
-              </option>
-            ))}
-          </select>
+    <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
+      <div className="container mx-auto p-4">
+        <BackButton />
+        
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-4">NFT Trader Insights</h1>
+          <p className="text-gray-500">
+            Analysis of NFT trading activity and participant behavior
+          </p>
         </div>
 
-        {/* Trader Type Selector */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Trader Type</label>
-          <select
-            value={traderType}
-            onChange={(e) => setTraderType(e.target.value)}
-            className={`w-full p-2 rounded-lg border ${
-              isDark 
-                ? 'bg-gray-800 border-gray-700 text-white' 
-                : 'bg-white border-gray-300'
-            }`}
-          >
-            {traderTypes.map(type => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+            <h3 className="text-lg font-semibold mb-2">Total Traders</h3>
+            <p className="text-3xl font-bold text-blue-500">{formatNumber(data.traders)}</p>
+            <p className={`text-sm ${data.traders_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {getPercentageChange(data.traders_change)} change
+            </p>
+          </div>
+
+          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+            <h3 className="text-lg font-semibold mb-2">Active Buyers</h3>
+            <p className="text-3xl font-bold text-emerald-500">{formatNumber(data.traders_buyers)}</p>
+            <p className={`text-sm ${data.traders_buyers_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {getPercentageChange(data.traders_buyers_change)} change
+            </p>
+          </div>
+
+          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+            <h3 className="text-lg font-semibold mb-2">Active Sellers</h3>
+            <p className="text-3xl font-bold text-amber-500">{formatNumber(data.traders_sellers)}</p>
+            <p className={`text-sm ${data.traders_sellers_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {getPercentageChange(data.traders_sellers_change)} change
+            </p>
+          </div>
         </div>
 
-        {/* Metric Selector */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Metric</label>
-          <select
-            value={selectedMetric}
-            onChange={(e) => setSelectedMetric(e.target.value)}
-            className={`w-full p-2 rounded-lg border ${
-              isDark 
-                ? 'bg-gray-800 border-gray-700 text-white' 
-                : 'bg-white border-gray-300'
-            }`}
-          >
-            {metrics.map(metric => (
-              <option key={metric.value} value={metric.value}>
-                {metric.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'} lg:col-span-2`}>
+            <h2 className="text-xl font-bold mb-4">24-Hour Trading Activity</h2>
+            <div className="h-[400px]">
+              <Line data={lineChartData} options={chartOptions} />
+            </div>
+          </div>
 
-      {/* Trading Activity Stats */}
-      {data?.traders?.stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {Object.entries(data.traders.stats).map(([key, value]) => (
-            <div
-              key={key}
-              className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}
-            >
-              <h3 className="text-sm font-medium text-gray-500 mb-2">
-                {key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-              </h3>
-              <p className="text-2xl font-bold">
-                {typeof value === 'number'
-                  ? value.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })
-                  : value}
+          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+            <h2 className="text-xl font-bold mb-4">Trader Distribution</h2>
+            <div className="h-[400px] flex items-center justify-center">
+              <Doughnut data={doughnutData} options={doughnutOptions} />
+            </div>
+          </div>
+        </div>
+
+        {/* Market Status */}
+        <div className={`mt-8 p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+          <h2 className="text-xl font-bold mb-4">Market Status</h2>
+          <div className="grid grid-cols-3 gap-6">
+            <div>
+              <h3 className="text-gray-500 mb-1">Blockchain</h3>
+              <p className="text-lg font-semibold capitalize">{data.blockchain}</p>
+              <p className="text-sm text-gray-500">Network</p>
+            </div>
+            <div>
+              <h3 className="text-gray-500 mb-1">Chain ID</h3>
+              <p className="text-lg font-semibold">{data.chain_id}</p>
+              <p className="text-sm text-gray-500">Network identifier</p>
+            </div>
+            <div>
+              <h3 className="text-gray-500 mb-1">Last Updated</h3>
+              <p className="text-lg font-semibold">
+                {new Date(data.updated_at).toLocaleString()}
               </p>
-              {data.traders.changes?.[`${key}_change`] && (
-                <div className={`flex items-center text-sm mt-2 ${
-                  data.traders.changes[`${key}_change`] >= 0 
-                    ? 'text-green-500' 
-                    : 'text-red-500'
-                }`}>
-                  {data.traders.changes[`${key}_change`] >= 0 ? '↑' : '↓'}
-                  {Math.abs(data.traders.changes[`${key}_change`]).toFixed(2)}%
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Trading Activity Chart */}
-        <div className={`p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-          <h2 className="text-xl font-semibold mb-4">Trading Activity</h2>
-          <div className="h-[400px]">
-            <Line
-              options={chartOptions}
-              data={{
-                labels: data.traders.timeline.map(ts => new Date(ts).toLocaleString()),
-                datasets: [
-                  {
-                    label: metrics.find(m => m.value === selectedMetric)?.label,
-                    data: data.traders.values,
-                    borderColor: 'rgb(99, 102, 241)',
-                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                    fill: true
-                  }
-                ]
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Trader Distribution */}
-        <div className={`p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-          <h2 className="text-xl font-semibold mb-4">Trader Distribution</h2>
-          <div className="h-[400px]">
-            <Doughnut
-              options={doughnutOptions}
-              data={{
-                labels: ['Whales', 'Regular Traders', 'New Traders', 'Inactive'],
-                datasets: [{
-                  data: [
-                    data.traders.distribution.whales,
-                    data.traders.distribution.regular,
-                    data.traders.distribution.new,
-                    data.traders.distribution.inactive
-                  ],
-                  backgroundColor: [
-                    'rgba(99, 102, 241, 0.8)',
-                    'rgba(168, 85, 247, 0.8)',
-                    'rgba(236, 72, 153, 0.8)',
-                    'rgba(239, 68, 68, 0.8)'
-                  ]
-                }]
-              }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Wash Trading Analysis */}
-      {data?.washTrade && (
-        <div className={`p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg mb-8`}>
-          <h2 className="text-xl font-semibold mb-4">Wash Trading Analysis</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <h3 className="text-lg font-medium mb-2">Wash Trade Volume</h3>
-              <div className="text-2xl font-bold">
-                ${data.washTrade.volume.toLocaleString()}
-              </div>
-              <div className={`text-sm mt-1 ${
-                data.washTrade.volume_percentage <= 5 ? 'text-green-500' :
-                data.washTrade.volume_percentage <= 15 ? 'text-yellow-500' :
-                'text-red-500'
-              }`}>
-                {data.washTrade.volume_percentage.toFixed(2)}% of Total Volume
-              </div>
-            </div>
-            <div>
-              <h3 className="text-lg font-medium mb-2">Suspicious Traders</h3>
-              <div className="text-2xl font-bold">
-                {data.washTrade.suspicious_traders.toLocaleString()}
-              </div>
-              <div className={`text-sm mt-1 ${
-                data.washTrade.suspicious_percentage <= 3 ? 'text-green-500' :
-                data.washTrade.suspicious_percentage <= 10 ? 'text-yellow-500' :
-                'text-red-500'
-              }`}>
-                {data.washTrade.suspicious_percentage.toFixed(2)}% of Total Traders
-              </div>
-            </div>
-            <div>
-              <h3 className="text-lg font-medium mb-2">Risk Level</h3>
-              <div className={`text-xl font-medium ${
-                data.washTrade.risk_level === 'low' ? 'text-green-500' :
-                data.washTrade.risk_level === 'medium' ? 'text-yellow-500' :
-                'text-red-500'
-              }`}>
-                {data.washTrade.risk_level.charAt(0).toUpperCase() + data.washTrade.risk_level.slice(1)}
-              </div>
-              <div className="text-sm text-gray-500 mt-1">
-                Based on pattern analysis
-              </div>
+              <p className="text-sm text-gray-500">Latest data timestamp</p>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Top Traders Table */}
-      <div className={`rounded-xl overflow-hidden ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-        <div className="p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold">Top Traders</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className={isDark ? 'bg-gray-700' : 'bg-gray-50'}>
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Rank</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Wallet Address</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Volume</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Profit/Loss</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Trades</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Success Rate</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700">
-              {data.traders.top.map((trader, index) => (
-                <tr key={trader.address} className={isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}>
-                  <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
-                  <td className="px-6 py-4 whitespace-nowrap font-mono">
-                    {`${trader.address.slice(0, 6)}...${trader.address.slice(-4)}`}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    ${trader.volume.toLocaleString()}
-                  </td>
-                  <td className={`px-6 py-4 whitespace-nowrap ${
-                    trader.profit_loss >= 0 ? 'text-green-500' : 'text-red-500'
-                  }`}>
-                    {trader.profit_loss >= 0 ? '+' : '-'}
-                    ${Math.abs(trader.profit_loss).toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {trader.trades.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className={`px-2 py-1 rounded text-sm inline-block ${
-                      trader.success_rate >= 70 ? 'bg-green-500/20 text-green-500' :
-                      trader.success_rate >= 50 ? 'bg-yellow-500/20 text-yellow-500' :
-                      'bg-red-500/20 text-red-500'
-                    }`}>
-                      {trader.success_rate.toFixed(1)}%
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>

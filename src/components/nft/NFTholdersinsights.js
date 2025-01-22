@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { NFTInsightsAPI } from '../../api/nftInsightsEndpoints';
 import { useTheme } from '../../context/ThemeContext';
 import { Line } from 'react-chartjs-2';
-import ModernLoader from '../ModernLoader';
-import BackButton from '../../components/BackButton';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -15,7 +13,7 @@ import {
   Legend,
   Filler
 } from 'chart.js';
-import NFTAnalyticsDashboard from './NFTAnalyticsDashboard';
+import ModernLoader from '../ModernLoader';
 
 // Register ChartJS components
 ChartJS.register(
@@ -38,23 +36,17 @@ const NFTHoldersInsights = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
-        setError(null);
-        setData(null);
-        
         const response = await NFTInsightsAPI.getHoldersInsights();
-        console.log('API Response:', response); // Debug log
-        
-        if (response?.data?.[0]) {
-          const holderData = response.data[0];
-          setData(holderData);
+        const result = await response.json();
+        if (result?.data?.[0]) {
+          setData(result.data[0]);
         } else {
-          throw new Error('Invalid data format received');
+          setError('Invalid data format received');
         }
+        setLoading(false);
       } catch (err) {
-        console.error('Error fetching holders data:', err);
-        setError(err.message || 'Failed to fetch holders data');
-      } finally {
+        console.error(err);
+        setError('Failed to fetch holders data');
         setLoading(false);
       }
     };
@@ -62,95 +54,38 @@ const NFTHoldersInsights = () => {
     fetchData();
   }, []);
 
-  // Show loading state
   if (loading) {
-    return (
-      <div className="container mx-auto p-4">
-        <BackButton />
-        <ModernLoader />
-      </div>
-    );
+    return <ModernLoader text="Loading Holders Data..." />;
   }
 
-  // Show error state
   if (error) {
     return (
-      <div className="container mx-auto p-4">
-        <BackButton />
-        <div className={`p-6 rounded-lg ${isDark ? 'bg-red-900/20' : 'bg-red-100'}`}>
-          <p className="text-red-500">Error: {error}</p>
-        </div>
+      <div className="text-center text-red-500 p-4">
+        {error}
       </div>
     );
   }
 
-  // Show empty state
-  if (!data || typeof data !== 'object') {
+  if (!data) {
     return (
-      <div className="container mx-auto p-4">
-        <BackButton />
-        <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800/50' : 'bg-gray-100'}`}>
-          <p>No holders data available</p>
-        </div>
+      <div className="text-center p-4">
+        No holders data available
       </div>
     );
   }
 
   const formatTime = (dateString) => {
-    if (!dateString) return '';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (err) {
-      console.error('Error formatting date:', err);
-      return '';
-    }
+    return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const getPercentageChange = (value) => {
-    if (typeof value !== 'number') return '0%';
+    if (!value) return '0%';
     const change = (value * 100).toFixed(2);
-    return `${change >= 0 ? '+' : ''}${change}%`;
-  };
-
-  const formatNumber = (value) => {
-    if (!value) return '0';
-    try {
-      const num = parseInt(value);
-      return isNaN(num) ? '0' : num.toLocaleString();
-    } catch {
-      return '0';
-    }
-  };
-
-  const holdersCount = formatNumber(data.holders);
-  const whalesCount = formatNumber(data.holders_whales);
-
-  const holdersChartData = {
-    labels: Array.isArray(data.block_dates) ? data.block_dates.map(formatTime) : [],
-    datasets: [
-      {
-        label: 'Total Holders',
-        data: Array.isArray(data.holders_trend) ? data.holders_trend : [],
-        borderColor: isDark ? '#4F46E5' : '#4338CA',
-        backgroundColor: isDark ? 'rgba(79, 70, 229, 0.1)' : 'rgba(67, 56, 202, 0.1)',
-        fill: true,
-        tension: 0.4
-      },
-      {
-        label: 'Whale Holders',
-        data: Array.isArray(data.holders_whales_trend) ? data.holders_whales_trend : [],
-        borderColor: isDark ? '#10B981' : '#059669',
-        backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(5, 150, 105, 0.1)',
-        fill: true,
-        tension: 0.4
-      }
-    ]
+    return `${change}%`;
   };
 
   const chartOptions = {
     responsive: true,
-    maintainAspectRatio: false,
     interaction: {
       mode: 'index',
       intersect: false,
@@ -160,114 +95,183 @@ const NFTHoldersInsights = () => {
         position: 'top',
         labels: {
           color: isDark ? '#fff' : '#000',
-          font: {
-            family: "'Inter', sans-serif",
-            size: 12
-          }
         }
       },
       tooltip: {
         mode: 'index',
-        intersect: false,
-        backgroundColor: isDark ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-        titleColor: isDark ? '#fff' : '#000',
-        bodyColor: isDark ? '#fff' : '#000',
-        borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-        borderWidth: 1,
-        padding: 12,
-        bodyFont: {
-          family: "'Inter', sans-serif"
-        },
-        titleFont: {
-          family: "'Inter', sans-serif",
-          weight: 600
-        }
+        intersect: false
       }
     },
     scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+        },
+        ticks: {
+          color: isDark ? '#fff' : '#000',
+        }
+      },
       x: {
         grid: {
           color: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
         },
         ticks: {
-          color: isDark ? '#9CA3AF' : '#4B5563',
-          font: {
-            family: "'Inter', sans-serif",
-            size: 11
-          }
-        }
-      },
-      y: {
-        grid: {
-          color: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-        },
-        ticks: {
-          color: isDark ? '#9CA3AF' : '#4B5563',
-          font: {
-            family: "'Inter', sans-serif",
-            size: 11
-          }
+          color: isDark ? '#fff' : '#000',
+          maxRotation: 45,
+          minRotation: 45
         }
       }
     }
   };
 
+  const holdersChartData = {
+    labels: data.block_dates.map(formatTime),
+    datasets: [
+      {
+        label: 'Total Holders',
+        data: data.holders_trend,
+        borderColor: 'rgb(99, 102, 241)',
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        fill: true,
+        tension: 0.4
+      },
+      {
+        label: 'Active Holders',
+        data: data.active_holders_trend,
+        borderColor: 'rgb(34, 197, 94)',
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        fill: true,
+        tension: 0.4
+      }
+    ]
+  };
+
+  const distributionChartData = {
+    labels: data.block_dates.map(formatTime),
+    datasets: [
+      {
+        label: 'Large Holders',
+        data: data.large_holders_trend,
+        borderColor: 'rgb(234, 179, 8)',
+        backgroundColor: 'rgba(234, 179, 8, 0.1)',
+        fill: true,
+        tension: 0.4
+      },
+      {
+        label: 'Medium Holders',
+        data: data.medium_holders_trend,
+        borderColor: 'rgb(99, 102, 241)',
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        fill: true,
+        tension: 0.4
+      },
+      {
+        label: 'Small Holders',
+        data: data.small_holders_trend,
+        borderColor: 'rgb(239, 68, 68)',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        fill: true,
+        tension: 0.4
+      }
+    ]
+  };
+
   return (
-    <div className="container mx-auto p-4">
-      <BackButton />
-      <div className={`p-6 rounded-lg glass-effect ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">NFT Holders Overview</h2>
-            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              Track holder distribution and whale activity
-            </p>
-          </div>
-          <div className="mt-4 md:mt-0 text-right">
-            <p className="text-4xl font-bold gradient-text gradient-blue">
-              {holdersCount}
-            </p>
-            <p className={`text-sm mt-1 ${data.holders_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {getPercentageChange(data.holders_change)} change
-            </p>
-          </div>
+    <div className="min-h-screen p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold gradient-text gradient-blue mb-4">
+            NFT Holders Analysis
+          </h1>
+          <p className={`text-lg ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+            Monitor NFT holder distribution and behavior
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-700/30' : 'bg-gray-50'}`}>
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Total Holders */}
+          <div className={`card glass-effect p-6 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
             <h3 className="text-lg font-semibold mb-2">Total Holders</h3>
             <p className="text-3xl font-bold gradient-text gradient-blue">
-              {holdersCount}
+              {data.total_holders.toLocaleString()}
             </p>
             <p className={`text-sm mt-2 ${data.holders_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {getPercentageChange(data.holders_change)} change
             </p>
           </div>
 
-          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-700/30' : 'bg-gray-50'}`}>
-            <h3 className="text-lg font-semibold mb-2">Whale Holders</h3>
+          {/* Active Holders */}
+          <div className={`card glass-effect p-6 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
+            <h3 className="text-lg font-semibold mb-2">Active Holders</h3>
             <p className="text-3xl font-bold gradient-text gradient-green">
-              {whalesCount}
+              {data.active_holders.toLocaleString()}
             </p>
-            <p className={`text-sm mt-2 ${data.holders_whales_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {getPercentageChange(data.holders_whales_change)} change
+            <p className={`text-sm mt-2 ${data.active_holders_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {getPercentageChange(data.active_holders_change)} change
+            </p>
+          </div>
+
+          {/* Large Holders */}
+          <div className={`card glass-effect p-6 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
+            <h3 className="text-lg font-semibold mb-2">Large Holders</h3>
+            <p className="text-3xl font-bold gradient-text gradient-yellow">
+              {data.large_holders.toLocaleString()}
+            </p>
+            <p className={`text-sm mt-2 ${data.large_holders_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {getPercentageChange(data.large_holders_change)} change
+            </p>
+          </div>
+
+          {/* Holder Concentration */}
+          <div className={`card glass-effect p-6 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
+            <h3 className="text-lg font-semibold mb-2">Holder Concentration</h3>
+            <p className="text-3xl font-bold gradient-text gradient-purple">
+              {getPercentageChange(data.holder_concentration)}
+            </p>
+            <p className={`text-sm mt-2 ${data.holder_concentration_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {getPercentageChange(data.holder_concentration_change)} change
             </p>
           </div>
         </div>
 
-        <div className="h-[400px] mb-8">
-          <Line options={chartOptions} data={holdersChartData} />
+        {/* Holders Trend Chart */}
+        <div className={`card glass-effect p-6 mb-8 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
+          <h2 className="text-2xl font-bold mb-6">Holders Activity Trend</h2>
+          <div className="h-[400px]">
+            <Line options={chartOptions} data={holdersChartData} />
+          </div>
         </div>
 
-        {/* Advanced Analytics Dashboard */}
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold mb-6">Advanced Analytics</h2>
-          <NFTAnalyticsDashboard data={data} />
+        {/* Distribution Chart */}
+        <div className={`card glass-effect p-6 mb-8 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
+          <h2 className="text-2xl font-bold mb-6">Holder Distribution Trend</h2>
+          <div className="h-[400px]">
+            <Line options={chartOptions} data={distributionChartData} />
+          </div>
         </div>
 
-        <div className="mt-6 text-sm text-gray-500">
-          <p>Blockchain: <span className="font-medium capitalize">{data.blockchain || 'N/A'}</span></p>
-          <p>Chain ID: <span className="font-medium">{data.chain_id || 'N/A'}</span></p>
+        {/* Market Details */}
+        <div className={`card glass-effect p-6 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
+          <h2 className="text-2xl font-bold mb-6">Market Details</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <p className="text-sm text-gray-500">Blockchain</p>
+              <p className="text-lg font-medium capitalize">{data.blockchain}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Chain ID</p>
+              <p className="text-lg font-medium">{data.chain_id}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Last Updated</p>
+              <p className="text-lg font-medium">
+                {new Date(data.block_dates[0]).toLocaleString()}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

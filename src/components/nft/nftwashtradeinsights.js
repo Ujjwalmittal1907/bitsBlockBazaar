@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { NFTInsightsAPI } from '../../api/nftInsightsEndpoints';
 import { useTheme } from '../../context/ThemeContext';
-import { Line } from 'react-chartjs-2';
+import { Line, Bar } from 'react-chartjs-2';
 import ModernLoader from '../ModernLoader';
-import BackButton from '../../components/BackButton';
+import BackButton from '../BackButton';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
   Filler
 } from 'chart.js';
 
-// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
@@ -37,17 +38,21 @@ const NFTWashTradeInsights = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
+        setError(null);
+        
         const response = await NFTInsightsAPI.getWashTradeInsights();
         const result = await response.json();
+        
         if (result?.data?.[0]) {
           setData(result.data[0]);
         } else {
           setError('Invalid data format received');
         }
-        setLoading(false);
       } catch (err) {
-        console.error(err);
+        console.error('Error fetching wash trade data:', err);
         setError('Failed to fetch wash trade data');
+      } finally {
         setLoading(false);
       }
     };
@@ -55,111 +60,59 @@ const NFTWashTradeInsights = () => {
     fetchData();
   }, []);
 
+  const formatNumber = (value) => {
+    if (!value) return '0';
+    return Number(value).toLocaleString(undefined, {
+      maximumFractionDigits: 2
+    });
+  };
+
+  const formatCurrency = (value) => {
+    if (!value) return '$0';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  };
+
+  const getPercentageChange = (value) => {
+    if (!value) return '0%';
+    const percentage = value * 100;
+    return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen p-6">
-        <div className="max-w-7xl mx-auto">
-          <ModernLoader text="Loading Wash Trade Data..." />
-        </div>
+      <div className="container mx-auto p-4">
+        <BackButton />
+        <ModernLoader text="Loading Wash Trade Insights..." />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center text-red-500 p-4">
-            {error}
-          </div>
+      <div className="container mx-auto p-4">
+        <BackButton />
+        <div className="text-center text-red-500 p-4">
+          {error}
         </div>
       </div>
     );
   }
-
-  if (!data) {
-    return (
-      <div className="min-h-screen p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center p-4">
-            No wash trade data available
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const formatTime = (dateString) => {
-    return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const formatVolume = (value) => {
-    if (!value) return '$0';
-    const num = parseFloat(value);
-    if (isNaN(num)) return '$0';
-    
-    if (num >= 1e6) {
-      return `$${(num / 1e6).toFixed(2)}M`;
-    } else if (num >= 1e3) {
-      return `$${(num / 1e3).toFixed(2)}K`;
-    }
-    return `$${num.toFixed(2)}`;
-  };
-
-  const getPercentageChange = (value) => {
-    if (!value) return '0%';
-    const change = (value * 100).toFixed(2);
-    return `${change}%`;
-  };
-
-  const chartOptions = {
-    responsive: true,
-    interaction: {
-      mode: 'index',
-      intersect: false,
-    },
-    plugins: {
-      legend: {
-        position: 'top',
-        labels: {
-          color: isDark ? '#fff' : '#000',
-        }
-      },
-      tooltip: {
-        mode: 'index',
-        intersect: false
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        grid: {
-          color: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-        },
-        ticks: {
-          color: isDark ? '#fff' : '#000',
-        }
-      },
-      x: {
-        grid: {
-          color: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-        },
-        ticks: {
-          color: isDark ? '#fff' : '#000',
-          maxRotation: 45,
-          minRotation: 45
-        }
-      }
-    }
-  };
 
   const volumeChartData = {
-    labels: data.block_dates.map(formatTime),
+    labels: data.block_dates.map(date => {
+      const d = new Date(date);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }),
     datasets: [
       {
-        label: 'Wash Trade Volume',
+        label: 'Wash Trade Volume (USD)',
         data: data.washtrade_volume_trend,
-        borderColor: 'rgb(239, 68, 68)',
+        borderColor: '#EF4444',
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
         fill: true,
         tension: 0.4
@@ -167,155 +120,200 @@ const NFTWashTradeInsights = () => {
     ]
   };
 
-  const activityChartData = {
-    labels: data.block_dates.map(formatTime),
+  const metricsChartData = {
+    labels: data.block_dates.map(date => {
+      const d = new Date(date);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }),
     datasets: [
       {
         label: 'Suspect Transactions',
         data: data.washtrade_suspect_transactions_trend,
-        borderColor: 'rgb(234, 179, 8)',
-        backgroundColor: 'rgba(234, 179, 8, 0.1)',
+        borderColor: '#8B5CF6',
+        backgroundColor: 'rgba(139, 92, 246, 0.1)',
         fill: true,
-        tension: 0.4
+        type: 'line',
+        tension: 0.4,
+        yAxisID: 'y'
       },
       {
         label: 'Affected Assets',
         data: data.washtrade_assets_trend,
-        borderColor: 'rgb(99, 102, 241)',
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-        fill: true,
-        tension: 0.4
+        borderColor: '#F59E0B',
+        backgroundColor: 'rgba(245, 158, 11, 0.8)',
+        type: 'bar',
+        yAxisID: 'y1'
       }
     ]
   };
 
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          color: isDark ? '#E5E7EB' : '#1F2937'
+        }
+      },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+        titleColor: isDark ? '#E5E7EB' : '#1F2937',
+        bodyColor: isDark ? '#E5E7EB' : '#1F2937',
+        borderColor: isDark ? '#374151' : '#E5E7EB',
+        borderWidth: 1
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          color: isDark ? '#374151' : '#E5E7EB'
+        },
+        ticks: {
+          color: isDark ? '#E5E7EB' : '#1F2937'
+        }
+      },
+      y: {
+        grid: {
+          color: isDark ? '#374151' : '#E5E7EB'
+        },
+        ticks: {
+          color: isDark ? '#E5E7EB' : '#1F2937'
+        }
+      }
+    }
+  };
+
+  const metricsChartOptions = {
+    ...chartOptions,
+    scales: {
+      ...chartOptions.scales,
+      y: {
+        type: 'linear',
+        display: true,
+        position: 'left',
+        grid: {
+          color: isDark ? '#374151' : '#E5E7EB'
+        },
+        ticks: {
+          color: isDark ? '#E5E7EB' : '#1F2937'
+        }
+      },
+      y1: {
+        type: 'linear',
+        display: true,
+        position: 'right',
+        grid: {
+          drawOnChartArea: false
+        },
+        ticks: {
+          color: isDark ? '#E5E7EB' : '#1F2937'
+        }
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
+      <div className="container mx-auto p-4">
         <BackButton />
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold gradient-text gradient-red mb-4">
-            NFT Wash Trading Monitor
-          </h1>
-          <p className={`text-lg ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-            Track and analyze suspicious trading patterns
+        
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-4">NFT Wash Trade Analysis</h1>
+          <p className="text-gray-500">
+            Monitoring suspicious trading patterns and potential wash trading activity
           </p>
         </div>
 
-        {/* Wash Trade Level Indicator */}
-        <div className={`card glass-effect p-6 mb-8 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
-          <div className="flex flex-col md:flex-row justify-between items-center">
+        {/* Risk Level Indicator */}
+        <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'} mb-8`}>
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold mb-2">Wash Trade Risk Level</h2>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Current market risk assessment
-              </p>
+              <h2 className="text-xl font-bold mb-2">Wash Trade Risk Level</h2>
+              <p className="text-gray-500">Current market risk assessment</p>
             </div>
-            <div className="text-right mt-4 md:mt-0">
-              <p className={`text-4xl font-bold ${
-                data.washtrade_level > 75 ? 'text-red-500' :
-                data.washtrade_level > 50 ? 'text-yellow-500' :
-                'text-green-500'
-              }`}>
-                {data.washtrade_level}
-              </p>
-              <p className="text-lg font-medium text-gray-500">
-                Risk Score
-              </p>
+            <div className="text-right">
+              <p className="text-4xl font-bold text-red-500">{data.washtrade_level}/100</p>
+              <p className="text-sm text-gray-500">Risk Score</p>
             </div>
-          </div>
-          <div className="mt-4 relative h-4 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className={`absolute top-0 left-0 h-full transition-all duration-500 ease-out ${
-                data.washtrade_level > 75 ? 'bg-red-500' :
-                data.washtrade_level > 50 ? 'bg-yellow-500' :
-                'bg-green-500'
-              }`}
-              style={{ width: `${data.washtrade_level}%` }}
-            ></div>
           </div>
         </div>
 
-        {/* Stats Overview */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Volume */}
-          <div className={`card glass-effect p-6 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
+          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
             <h3 className="text-lg font-semibold mb-2">Wash Trade Volume</h3>
-            <p className="text-3xl font-bold gradient-text gradient-red">
-              {formatVolume(data.washtrade_volume)}
-            </p>
-            <p className={`text-sm mt-2 ${data.washtrade_volume_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <p className="text-3xl font-bold text-red-500">{formatCurrency(data.washtrade_volume)}</p>
+            <p className={`text-sm ${data.washtrade_volume_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {getPercentageChange(data.washtrade_volume_change)} change
             </p>
           </div>
 
-          {/* Suspect Sales */}
-          <div className={`card glass-effect p-6 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
+          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
             <h3 className="text-lg font-semibold mb-2">Suspect Sales</h3>
-            <p className="text-3xl font-bold gradient-text gradient-yellow">
-              {parseInt(data.washtrade_suspect_sales).toLocaleString()}
-            </p>
-            <p className={`text-sm mt-2 ${data.washtrade_suspect_sales_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <p className="text-3xl font-bold text-purple-500">{formatNumber(data.washtrade_suspect_sales)}</p>
+            <p className={`text-sm ${data.washtrade_suspect_sales_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {getPercentageChange(data.washtrade_suspect_sales_change)} change
             </p>
           </div>
 
-          {/* Affected Assets */}
-          <div className={`card glass-effect p-6 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
+          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
             <h3 className="text-lg font-semibold mb-2">Affected Assets</h3>
-            <p className="text-3xl font-bold gradient-text gradient-blue">
-              {parseInt(data.washtrade_assets).toLocaleString()}
-            </p>
-            <p className={`text-sm mt-2 ${data.washtrade_assets_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <p className="text-3xl font-bold text-amber-500">{formatNumber(data.washtrade_assets)}</p>
+            <p className={`text-sm ${data.washtrade_assets_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {getPercentageChange(data.washtrade_assets_change)} change
             </p>
           </div>
 
-          {/* Suspect Wallets */}
-          <div className={`card glass-effect p-6 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
-            <h3 className="text-lg font-semibold mb-2">Suspect Wallets</h3>
-            <p className="text-3xl font-bold gradient-text gradient-purple">
-              {parseInt(data.washtrade_wallets).toLocaleString()}
-            </p>
-            <p className={`text-sm mt-2 ${data.washtrade_wallets_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+            <h3 className="text-lg font-semibold mb-2">Suspicious Wallets</h3>
+            <p className="text-3xl font-bold text-blue-500">{formatNumber(data.washtrade_wallets)}</p>
+            <p className={`text-sm ${data.washtrade_wallets_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {getPercentageChange(data.washtrade_wallets_change)} change
             </p>
           </div>
         </div>
 
-        {/* Volume Chart */}
-        <div className={`card glass-effect p-6 mb-8 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
-          <h2 className="text-2xl font-bold mb-6">Wash Trade Volume Trend</h2>
-          <div className="h-[400px]">
-            <Line options={chartOptions} data={volumeChartData} />
+        {/* Charts */}
+        <div className="grid grid-cols-1 gap-6 mb-8">
+          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+            <h2 className="text-xl font-bold mb-4">Wash Trade Volume Trend</h2>
+            <div className="h-[400px]">
+              <Line data={volumeChartData} options={chartOptions} />
+            </div>
+          </div>
+
+          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+            <h2 className="text-xl font-bold mb-4">Suspicious Activity Metrics</h2>
+            <div className="h-[400px]">
+              <Line data={metricsChartData} options={metricsChartOptions} />
+            </div>
           </div>
         </div>
 
-        {/* Activity Chart */}
-        <div className={`card glass-effect p-6 mb-8 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
-          <h2 className="text-2xl font-bold mb-6">Suspicious Activity Trends</h2>
-          <div className="h-[400px]">
-            <Line options={chartOptions} data={activityChartData} />
-          </div>
-        </div>
-
-        {/* Market Details */}
-        <div className={`card glass-effect p-6 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}`}>
-          <h2 className="text-2xl font-bold mb-6">Market Details</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Market Status */}
+        <div className={`mt-8 p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+          <h2 className="text-xl font-bold mb-4">Market Status</h2>
+          <div className="grid grid-cols-3 gap-6">
             <div>
-              <p className="text-sm text-gray-500">Blockchain</p>
-              <p className="text-lg font-medium capitalize">{data.blockchain}</p>
+              <h3 className="text-gray-500 mb-1">Blockchain</h3>
+              <p className="text-lg font-semibold capitalize">{data.blockchain}</p>
+              <p className="text-sm text-gray-500">Network</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Chain ID</p>
-              <p className="text-lg font-medium">{data.chain_id}</p>
+              <h3 className="text-gray-500 mb-1">Chain ID</h3>
+              <p className="text-lg font-semibold">{data.chain_id}</p>
+              <p className="text-sm text-gray-500">Network identifier</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Suspect Sales Ratio</p>
-              <p className="text-lg font-medium">
-                {(parseFloat(data.washtrade_suspect_sales_ratio) * 100).toFixed(4)}%
+              <h3 className="text-gray-500 mb-1">Suspect Sales Ratio</h3>
+              <p className="text-lg font-semibold">
+                {(Number(data.washtrade_suspect_sales_ratio) * 100).toFixed(4)}%
+              </p>
+              <p className={`text-sm ${data.washtrade_suspect_sales_ratio_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {getPercentageChange(data.washtrade_suspect_sales_ratio_change)} change
               </p>
             </div>
           </div>

@@ -5,7 +5,7 @@ const BASE_URL = 'https://api.unleashnfts.com/api/v2/nft/market-insights';
 const API_KEY = '3e736dba7151eb8de28a065916dc9d70';
 
 // NFT Insights endpoints
-const NFT_INSIGHTS_ENDPOINTS = {
+export const NFT_INSIGHTS_ENDPOINTS = {
   HOLDERS: `${BASE_URL}/holders`,
   TRADERS: `${BASE_URL}/traders`,
   SCORES: `${BASE_URL}/scores`,
@@ -15,7 +15,7 @@ const NFT_INSIGHTS_ENDPOINTS = {
 };
 
 // Common API options
-const getApiOptions = () => ({
+export const getApiOptions = () => ({
   method: 'GET',
   headers: { 
     accept: 'application/json',
@@ -24,109 +24,45 @@ const getApiOptions = () => ({
 });
 
 // Helper function to build URL with query parameters
-const buildUrl = (baseUrl, params = {}) => {
+export const buildUrl = (baseUrl, params = {}) => {
   const url = new URL(baseUrl);
-  const defaultParams = {
-    blockchain: 'ethereum',
-    time_range: '24h'
-  };
-  
-  // Merge default params with provided params
-  const finalParams = { ...defaultParams, ...params };
-  
-  Object.keys(finalParams).forEach(key => {
-    if (finalParams[key] !== undefined && finalParams[key] !== null) {
-      url.searchParams.append(key, finalParams[key]);
+  Object.keys(params).forEach(key => {
+    if (params[key] !== undefined && params[key] !== null) {
+      url.searchParams.append(key, params[key]);
     }
   });
   return url.toString();
 };
 
 // API service for NFT Insights
-const NFTInsightsAPI = {
-  getHoldersInsights: async (params = {}) => {
-    try {
-      const url = buildUrl(NFT_INSIGHTS_ENDPOINTS.HOLDERS, params);
-      const response = await fetch(url, getApiOptions());
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    } catch (error) {
-      console.error('Error fetching holders insights:', error);
-      throw error;
-    }
+export const NFTInsightsAPI = {
+  getHoldersInsights: (params = {}) => {
+    const url = buildUrl(NFT_INSIGHTS_ENDPOINTS.HOLDERS, params);
+    return fetch(url, getApiOptions());
   },
 
-  getTradersInsights: async (params = {}) => {
-    try {
-      const url = buildUrl(NFT_INSIGHTS_ENDPOINTS.TRADERS, params);
-      const response = await fetch(url, getApiOptions());
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    } catch (error) {
-      console.error('Error fetching traders insights:', error);
-      throw error;
-    }
+  getTradersInsights: (params = {}) => {
+    const url = buildUrl(NFT_INSIGHTS_ENDPOINTS.TRADERS, params);
+    return fetch(url, getApiOptions());
   },
 
-  getScoresInsights: async (params = {}) => {
-    try {
-      const url = buildUrl(NFT_INSIGHTS_ENDPOINTS.SCORES, params);
-      const response = await fetch(url, getApiOptions());
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    } catch (error) {
-      console.error('Error fetching scores insights:', error);
-      throw error;
-    }
+  getScoresInsights: (params = {}) => {
+    const url = buildUrl(NFT_INSIGHTS_ENDPOINTS.SCORES, params);
+    return fetch(url, getApiOptions());
   },
 
-  getWashTradeInsights: async (params = {}) => {
-    try {
-      const url = buildUrl(NFT_INSIGHTS_ENDPOINTS.WASH_TRADE, params);
-      const response = await fetch(url, getApiOptions());
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    } catch (error) {
-      console.error('Error fetching wash trade insights:', error);
-      throw error;
-    }
+  getWashTradeInsights: (params = {}) => {
+    const url = buildUrl(NFT_INSIGHTS_ENDPOINTS.WASH_TRADE, params);
+    return fetch(url, getApiOptions());
   },
 
-  getMarketAnalytics: async (params = {}) => {
-    try {
-      const url = buildUrl(NFT_INSIGHTS_ENDPOINTS.MARKET_ANALYTICS, params);
-      const response = await fetch(url, getApiOptions());
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    } catch (error) {
-      console.error('Error fetching market analytics:', error);
-      throw error;
-    }
+  getMarketAnalytics: (params = {}) => {
+    const url = buildUrl(NFT_INSIGHTS_ENDPOINTS.MARKET_ANALYTICS, params);
+    return fetch(url, getApiOptions());
   },
 
-  getMarketScores: async (params = {}) => {
-    try {
-      const url = buildUrl(NFT_INSIGHTS_ENDPOINTS.MARKET_SCORES, params);
-      const response = await fetch(url, getApiOptions());
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    } catch (error) {
-      console.error('Error fetching market scores:', error);
-      throw error;
-    }
+  getMarketScores: (params = {}) => {
+    const url = buildUrl(NFT_INSIGHTS_ENDPOINTS.MARKET_SCORES, params);
+    return fetch(url, getApiOptions());
   }
 };
-
-export { NFT_INSIGHTS_ENDPOINTS, getApiOptions, buildUrl, NFTInsightsAPI };
