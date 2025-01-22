@@ -59,12 +59,17 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link to="/" className="flex items-center">
-              <svg className="h-8 w-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                  d="M13 10V3L4 14h7v7l9-11h-7z" />
+              <svg className="h-8 w-8" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="32" height="32" rx="8" className={`${isDark ? 'fill-blue-500' : 'fill-blue-600'}`}/>
+                <path d="M8 8H24V24H8V8Z" className={`${isDark ? 'fill-blue-700' : 'fill-blue-800'}`}/>
+                <path d="M12 12L20 12L16 8L12 12Z" fill="white"/>
+                <path d="M20 20H12L16 24L20 20Z" fill="white"/>
+                <path d="M12 12V20L8 16L12 12Z" className={`${isDark ? 'fill-blue-300' : 'fill-blue-200'}`}/>
+                <path d="M20 20V12L24 16L20 20Z" className={`${isDark ? 'fill-blue-300' : 'fill-blue-200'}`}/>
+                <circle cx="16" cy="16" r="3" fill="white"/>
               </svg>
               <span className={`ml-2 text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                NFT Analytics
+                NFT Insights
               </span>
             </Link>
           </div>

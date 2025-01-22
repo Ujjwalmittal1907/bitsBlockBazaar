@@ -13,7 +13,7 @@ const NftMarketplaceAnalytics = () => {
   useEffect(() => {
     const options = {
       method: 'GET',
-      headers: { accept: 'application/json', 'x-api-key': '3e736dba7151eb8de28a065916dc9d70' }
+      headers: { accept: 'application/json', 'x-api-key': process.env.REACT_APP_X_API_KEY }
     };
 
     fetch('https://api.unleashnfts.com/api/v2/nft/marketplace/analytics?blockchain=ethereum&time_range=24h&sort_by=name&sort_order=desc&offset=0&limit=30', options)

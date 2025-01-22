@@ -2,7 +2,7 @@
 const BASE_URL = 'https://api.unleashnfts.com/api/v2/nft/market-insights';
 
 // API Key
-const API_KEY = '3e736dba7151eb8de28a065916dc9d70';
+const API_KEY = process.env.REACT_APP_X_API_KEY;
 
 // NFT Insights endpoints
 export const NFT_INSIGHTS_ENDPOINTS = {
