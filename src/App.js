@@ -41,14 +41,14 @@ const App = () => {
               {/* NFT Marketplace Routes */}
               <Route path="/nftmarketplaceoverview" element={<NftMarketplaceOverview />} />
               <Route path="/nftmarketplace" element={<NftMarketplace />} />
-              <Route path="/nftmarketplaceanalytics" element={<NftMarketplaceAnalytics />} />
+              <Route path="/marketplaceanalytics" element={<NftMarketplaceAnalytics />} />
               <Route path="/nftmarketplaceholders" element={<NftMarketplaceHolders />} />
               <Route path="/marketplacetraders" element={<MarketplaceTraders />} />
               <Route path="/marketplacewashtraders" element={<MarketplaceWashTraders />} />
-              <Route path="/marketplaceanalytics" element={<NftMarketplaceAnalytics />} />
               
               {/* NFT Collection Routes */}
               <Route path="/nftcollection" element={<NftCollection />} />
+              <Route path="/collectionoverview" element={<CollectionOverview />} />
               <Route path="/collectionanalytics" element={<CollectionAnalytics />} />
               <Route path="/collectionholders" element={<CollectionHolders />} />
               <Route path="/collectionscores" element={<CollectionScores />} />
@@ -56,7 +56,6 @@ const App = () => {
               <Route path="/collectionwashtrade" element={<CollectionWashtrade />} />
               <Route path="/collectioncategories" element={<CollectionCategories />} />
               <Route path="/collectionmetadata" element={<CollectionMetadata />} />
-              <Route path="/collectionoverview" element={<CollectionOverview />} />
               
               {/* NFT Insights Routes */}
               <Route path="/nfttradersinsights" element={<NFTTradersInsights />} />

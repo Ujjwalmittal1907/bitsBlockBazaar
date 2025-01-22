@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bar, Line, Pie } from 'react-chartjs-2';
 import 'chart.js/auto';
+import BackButton from './BackButton';
 
 const NftMarketplaceAnalytics = () => {
   const [data, setData] = useState([]);
@@ -150,7 +151,8 @@ const NftMarketplaceAnalytics = () => {
   };
 
   return (
-    <>
+    <div className="container mx-auto p-4">
+      <BackButton />
       <div className="p-6 font-sans bg-gray-900 text-white min-h-screen">
         <h1 className="text-4xl font-bold mb-6 text-center text-blue-400">NFT Marketplace Analytics</h1>
         <div className="mb-6 relative h-96">
@@ -234,7 +236,7 @@ const NftMarketplaceAnalytics = () => {
           })}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

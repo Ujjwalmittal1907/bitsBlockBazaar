@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import BackButton from './BackButton';
 
 const NftMarketplaceTraders = () => {
   const [data, setData] = useState([]);
@@ -54,7 +55,8 @@ const NftMarketplaceTraders = () => {
   };
 
   return (
-    <div className="p-6 font-sans bg-gray-900 text-white min-h-screen">
+    <div className="container mx-auto p-4">
+      <BackButton />
       <h1 className="text-4xl font-bold mb-6 text-center text-blue-400">NFT Marketplace Traders</h1>
       <div className="mb-4 flex justify-between">
         <div className="w-1/3 pr-2">

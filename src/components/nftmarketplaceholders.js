@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import BackButton from './BackButton';
 
 const NftMarketplaceHolders = () => {
   const [data, setData] = useState([]);
@@ -64,52 +65,77 @@ const NftMarketplaceHolders = () => {
   }, [filterAndSortCollections]);
 
   return (
-    <div className="p-6 font-sans bg-gray-900 text-white min-h-screen">
-      <h1 className="text-4xl font-bold mb-6 text-center text-blue-400">NFT Marketplace Holders</h1>
-      <div className="mb-4 flex justify-between">
-        <div className="w-1/3 pr-2">
-          <label className="block mb-2">Filter by Blockchain:</label>
-          <select
-            className="bg-gray-800 p-2 rounded w-full"
-            value={blockchainFilter}
-            onChange={(e) => setBlockchainFilter(e.target.value)}
-          >
-            <option value="">All</option>
-            <option value="ethereum">Ethereum</option>
-            <option value="solana">Solana</option>
-            <option value="avalanche">Avalanche</option>
-            <option value="polygon">Polygon</option>
-          </select>
+    <div className="container mx-auto p-4">
+      <BackButton />
+      <div className="p-6 font-sans bg-gray-900 text-white min-h-screen">
+        <h1 className="text-4xl font-bold mb-6 text-center text-blue-400">NFT Marketplace Holders</h1>
+        <div className="mb-4 flex justify-between">
+          <div className="w-1/3 pr-2">
+            <label className="block mb-2">Filter by Blockchain:</label>
+            <select
+              className="bg-gray-800 p-2 rounded w-full"
+              value={blockchainFilter}
+              onChange={(e) => setBlockchainFilter(e.target.value)}
+            >
+              <option value="">All</option>
+              <option value="ethereum">Ethereum</option>
+              <option value="solana">Solana</option>
+              <option value="avalanche">Avalanche</option>
+              <option value="polygon">Polygon</option>
+            </select>
+          </div>
+          <div className="w-1/3 px-2">
+            <label className="block mb-2">Filter by Name:</label>
+            <input
+              type="text"
+              className="bg-gray-800 p-2 rounded w-full"
+              placeholder="Enter name"
+              value={nameFilter}
+              onChange={(e) => setNameFilter(e.target.value)}
+            />
+          </div>
+          <div className="w-1/3 pl-2">
+            <label className="block mb-2">Filter by Suggestion:</label>
+            <select
+              className="bg-gray-800 p-2 rounded w-full"
+              value={suggestionFilter}
+              onChange={(e) => setSuggestionFilter(e.target.value)}
+            >
+              <option value="">All</option>
+              <option value="High holder activity, consider monitoring closely.">High holder activity</option>
+              <option value="Moderate holder activity, potential for growth.">Moderate holder activity</option>
+              <option value="Declining holder activity, exercise caution.">Declining holder activity</option>
+              <option value="Stable holder activity.">Stable holder activity</option>
+            </select>
+          </div>
         </div>
-        <div className="w-1/3 px-2">
-          <label className="block mb-2">Filter by Name:</label>
-          <input
-            type="text"
-            className="bg-gray-800 p-2 rounded w-full"
-            placeholder="Enter name"
-            value={nameFilter}
-            onChange={(e) => setNameFilter(e.target.value)}
-          />
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold mb-4 text-blue-400">Top Suggestions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {suggestions.map((item, index) => {
+              const suggestion = getSuggestion(item);
+              return (
+                <div key={index} className="bg-gray-800 p-4 rounded-lg shadow-lg hover:bg-gray-700 transition duration-300">
+                  <h2 className="text-xl font-bold mb-2 text-white">{item.name}</h2>
+                  <p className="text-gray-400">Blockchain: {item.blockchain}</p>
+                  <p className="text-gray-400">Holders: {item.holders}</p>
+                  <p className="text-gray-400">Holders Change: {item.holders_change ? item.holders_change.toFixed(2) + '%' : 'N/A'}</p>
+                  <p className={`text-gray-400 ${suggestion.color}`}>Suggestion: {suggestion.text}</p>
+                  {item.url && (
+                    <p className="text-gray-400">
+                      URL: <a href={item.url} className="text-blue-400" target="_blank" rel="noopener noreferrer">{item.url}</a>
+                    </p>
+                  )}
+                  {item.thumbnail_url && (
+                    <img src={item.thumbnail_url} alt={item.name} className="mt-4 rounded" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
-        <div className="w-1/3 pl-2">
-          <label className="block mb-2">Filter by Suggestion:</label>
-          <select
-            className="bg-gray-800 p-2 rounded w-full"
-            value={suggestionFilter}
-            onChange={(e) => setSuggestionFilter(e.target.value)}
-          >
-            <option value="">All</option>
-            <option value="High holder activity, consider monitoring closely.">High holder activity</option>
-            <option value="Moderate holder activity, potential for growth.">Moderate holder activity</option>
-            <option value="Declining holder activity, exercise caution.">Declining holder activity</option>
-            <option value="Stable holder activity.">Stable holder activity</option>
-          </select>
-        </div>
-      </div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-4 text-blue-400">Top Suggestions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {suggestions.map((item, index) => {
+          {filteredData.map((item, index) => {
             const suggestion = getSuggestion(item);
             return (
               <div key={index} className="bg-gray-800 p-4 rounded-lg shadow-lg hover:bg-gray-700 transition duration-300">
@@ -130,28 +156,6 @@ const NftMarketplaceHolders = () => {
             );
           })}
         </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredData.map((item, index) => {
-          const suggestion = getSuggestion(item);
-          return (
-            <div key={index} className="bg-gray-800 p-4 rounded-lg shadow-lg hover:bg-gray-700 transition duration-300">
-              <h2 className="text-xl font-bold mb-2 text-white">{item.name}</h2>
-              <p className="text-gray-400">Blockchain: {item.blockchain}</p>
-              <p className="text-gray-400">Holders: {item.holders}</p>
-              <p className="text-gray-400">Holders Change: {item.holders_change ? item.holders_change.toFixed(2) + '%' : 'N/A'}</p>
-              <p className={`text-gray-400 ${suggestion.color}`}>Suggestion: {suggestion.text}</p>
-              {item.url && (
-                <p className="text-gray-400">
-                  URL: <a href={item.url} className="text-blue-400" target="_blank" rel="noopener noreferrer">{item.url}</a>
-                </p>
-              )}
-              {item.thumbnail_url && (
-                <img src={item.thumbnail_url} alt={item.name} className="mt-4 rounded" />
-              )}
-            </div>
-          );
-        })}
       </div>
     </div>
   );

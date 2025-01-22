@@ -5,6 +5,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import Select from 'react-select';
 import { useNavigate } from 'react-router-dom';
+import BackButton from './BackButton';
 
 const CollectionAnalytics = () => {
   const [data, setData] = useState(null);
@@ -198,7 +199,8 @@ const CollectionAnalytics = () => {
   };
 
   return (
-    <div className="p-6 font-sans bg-gray-900 text-white min-h-screen">
+    <div className="container mx-auto p-4">
+      <BackButton />
       <button onClick={() => navigate('/collectionoverview')} className="mb-6 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
         Back to Collection Overview
       </button>

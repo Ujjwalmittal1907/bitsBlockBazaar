@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import BackButton from './BackButton';
 
 const CollectionTraders = () => {
   const [data, setData] = useState(null);
@@ -65,21 +66,24 @@ const CollectionTraders = () => {
   }) : [];
 
   return (
-    <div className="p-6 font-sans bg-gray-900 text-white min-h-screen">
-      <h1 className="text-4xl font-bold mb-6 text-center text-blue-400">Collection Traders</h1>
-      <div className="mb-6 text-center">
-        <button className={`mx-2 px-4 py-2 ${filter === 'all' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('all')}>All</button>
-        <button className={`mx-2 px-4 py-2 ${filter === 'significant' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('significant')}>Significant</button>
-        <button className={`mx-2 px-4 py-2 ${filter === 'moderate' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('moderate')}>Moderate</button>
-        <button className={`mx-2 px-4 py-2 ${filter === 'stable' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('stable')}>Stable</button>
-      </div>
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredData.map(item => generateUseCase(item))}
+    <div className="container mx-auto p-4">
+      <BackButton />
+      <div className="p-6 font-sans bg-gray-900 text-white min-h-screen">
+        <h1 className="text-4xl font-bold mb-6 text-center text-blue-400">Collection Traders</h1>
+        <div className="mb-6 text-center">
+          <button className={`mx-2 px-4 py-2 ${filter === 'all' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('all')}>All</button>
+          <button className={`mx-2 px-4 py-2 ${filter === 'significant' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('significant')}>Significant</button>
+          <button className={`mx-2 px-4 py-2 ${filter === 'moderate' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('moderate')}>Moderate</button>
+          <button className={`mx-2 px-4 py-2 ${filter === 'stable' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('stable')}>Stable</button>
         </div>
-      )}
+        {loading ? (
+          <p>Loading...</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredData.map(item => generateUseCase(item))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

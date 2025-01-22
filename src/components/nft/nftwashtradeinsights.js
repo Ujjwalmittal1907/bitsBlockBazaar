@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { NFTInsightsAPI } from '../../api/nftInsightsEndpoints';
 import { useTheme } from '../../context/ThemeContext';
 import { Line } from 'react-chartjs-2';
+import ModernLoader from '../ModernLoader';
+import BackButton from '../../components/BackButton';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,7 +15,6 @@ import {
   Legend,
   Filler
 } from 'chart.js';
-import ModernLoader from '../ModernLoader';
 
 // Register ChartJS components
 ChartJS.register(
@@ -55,21 +56,35 @@ const NFTWashTradeInsights = () => {
   }, []);
 
   if (loading) {
-    return <ModernLoader text="Loading Wash Trade Data..." />;
+    return (
+      <div className="min-h-screen p-6">
+        <div className="max-w-7xl mx-auto">
+          <ModernLoader text="Loading Wash Trade Data..." />
+        </div>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="text-center text-red-500 p-4">
-        {error}
+      <div className="min-h-screen p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center text-red-500 p-4">
+            {error}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="text-center p-4">
-        No wash trade data available
+      <div className="min-h-screen p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center p-4">
+            No wash trade data available
+          </div>
+        </div>
       </div>
     );
   }
@@ -177,6 +192,7 @@ const NFTWashTradeInsights = () => {
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
+        <BackButton />
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold gradient-text gradient-red mb-4">

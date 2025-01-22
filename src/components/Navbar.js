@@ -16,17 +16,36 @@ const Navbar = () => {
 
   const navItems = [
     { path: '/', label: 'Home' },
-    { path: '/nftmarketplaceoverview', label: 'NFT Marketplace' },
-    { path: '/collectionoverview', label: 'Collections' },
+    {
+      path: '#',
+      label: 'NFT Marketplace',
+      subItems: [
+        { path: '/marketplaceanalytics', label: 'Trading Analytics' },
+        { path: '/marketplacetraders', label: 'Top Traders' },
+        { path: '/marketplacewashtraders', label: 'Wash Trade Detection' },
+        { path: '/nftmarketplace', label: 'Volume Analysis' }
+      ]
+    },
+    {
+      path: '#',
+      label: 'Collections',
+      subItems: [
+        { path: '/collectionanalytics', label: 'Analytics' },
+        { path: '/collectioncategories', label: 'Categories' },
+        { path: '/collectionmetadata', label: 'Metadata' },
+        { path: '/collectionscores', label: 'Scores' },
+        { path: '/collectionwashtrade', label: 'Wash Trade' },
+        { path: '/collectiontraders', label: 'Top Traders' }
+      ]
+    },
     {
       path: '#',
       label: 'NFT Insights',
       subItems: [
+        { path: '/nftmarketanalyticsreport', label: 'Market Analytics' },
         { path: '/nfttradersinsights', label: 'Traders Insights' },
         { path: '/nftwashtradeinsights', label: 'Wash Trade Insights' },
-        { path: '/nftmarketanalyticsreport', label: 'Market Analytics' },
-        { path: '/nftholdersinsights', label: 'Holders Insights' },
-        { path: '/nftscoresinsights', label: 'NFT Scores' },
+        { path: '/nftscoresinsights', label: 'NFT Scores' }
       ]
     }
   ];
@@ -78,6 +97,7 @@ const Navbar = () => {
                                   ${isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}
                                   ${isActive(subItem.path) ? 'bg-blue-500 text-white' : ''}`}
                                 role="menuitem"
+                                onClick={() => setOpenSubmenu(null)}
                               >
                                 {subItem.label}
                               </Link>
@@ -130,19 +150,55 @@ const Navbar = () => {
       {/* Mobile menu */}
       <div className={`${isOpen ? 'block' : 'hidden'} md:hidden`}>
         <div className={`px-2 pt-2 pb-3 space-y-1 sm:px-3 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`block px-3 py-2 rounded-md text-base font-medium
-                ${isActive(item.path)
-                  ? 'bg-blue-500 text-white'
-                  : `${isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-900 hover:bg-gray-100'}`
-                }`}
-              onClick={() => setIsOpen(false)}
-            >
-              {item.label}
-            </Link>
+          {navItems.map((item, index) => (
+            <div key={index}>
+              {item.subItems ? (
+                <>
+                  <button
+                    onClick={() => toggleSubmenu(index)}
+                    className={`w-full text-left px-3 py-2 rounded-md text-base font-medium
+                      ${isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-900 hover:bg-gray-100'}`}
+                  >
+                    {item.label}
+                  </button>
+                  {openSubmenu === index && (
+                    <div className="pl-4 space-y-1">
+                      {item.subItems.map((subItem, subIndex) => (
+                        <Link
+                          key={subIndex}
+                          to={subItem.path}
+                          className={`block px-3 py-2 rounded-md text-sm font-medium
+                            ${isActive(subItem.path)
+                              ? 'bg-blue-500 text-white'
+                              : isDark
+                                ? 'text-gray-300 hover:bg-gray-700'
+                                : 'text-gray-700 hover:bg-gray-100'}`}
+                          onClick={() => {
+                            setIsOpen(false);
+                            setOpenSubmenu(null);
+                          }}
+                        >
+                          {subItem.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <Link
+                  to={item.path}
+                  className={`block px-3 py-2 rounded-md text-base font-medium
+                    ${isActive(item.path)
+                      ? 'bg-blue-500 text-white'
+                      : isDark
+                        ? 'text-gray-300 hover:bg-gray-700'
+                        : 'text-gray-900 hover:bg-gray-100'}`}
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              )}
+            </div>
           ))}
         </div>
       </div>
