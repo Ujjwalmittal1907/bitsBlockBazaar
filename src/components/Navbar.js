@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { FaSun, FaMoon } from 'react-icons/fa';
@@ -8,6 +8,20 @@ const Navbar = () => {
   const [openSubmenu, setOpenSubmenu] = useState(null);
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
+  const navRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (navRef.current && !navRef.current.contains(event.target)) {
+        setOpenSubmenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const isActive = (path) => location.pathname === path;
 
@@ -52,7 +66,7 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className={`sticky top-0 z-50 transition-all duration-300
+    <nav ref={navRef} className={`sticky top-0 z-50 transition-all duration-300
       ${isDark ? 'bg-gray-900/80' : 'bg-white/80'} backdrop-blur-lg
       border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
