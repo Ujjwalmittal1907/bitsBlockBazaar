@@ -56,10 +56,10 @@ const Home = () => {
         }
       ] : [],
       links: [
-        { title: 'Market Analytics Report', path: '/nftmarketanalyticsreport', description: 'Real-time NFT market trends and analysis' },
-        { title: 'NFT Valuation Scores', path: '/nftscoresinsights', description: 'AI-powered valuation metrics for NFTs' },
-        { title: 'Traders Analysis', path: '/nfttradersinsights', description: 'In-depth analysis of NFT trading patterns' },
-        { title: 'Wash Trading Detection', path: '/nftwashtradeinsights', description: 'Advanced wash trading detection system' }
+        { title: 'NFT Market Analytics Report', path: '/nftmarketanalyticsreport', description: 'Real-time NFT market trends and analysis' },
+        { title: 'NFT Valuation Scores Insights', path: '/nftscoresinsights', description: 'AI-powered valuation metrics for NFTs' },
+        { title: 'NFT Traders Insights', path: '/nfttradersinsights', description: 'In-depth analysis of NFT trading patterns' },
+        { title: 'NFT Wash Trade Insights', path: '/nftwashtradeinsights', description: 'Advanced wash trading detection system' }
       ]
     },
     {
@@ -82,10 +82,10 @@ const Home = () => {
         }
       ] : [],
       links: [
-        { title: 'Trading Analytics', path: '/marketplaceanalytics', description: 'Real-time trading metrics and volume analysis' },
-        { title: 'Top Traders', path: '/marketplacetraders', description: 'Leading traders and their performance metrics' },
-        { title: 'Wash Trade Detection', path: '/marketplacewashtraders', description: 'Identify suspicious trading patterns' },
-        { title: 'Volume Analysis', path: '/nftmarketplace', description: 'Detailed marketplace volume breakdown' }
+        { title: 'NFT Marketplace Analytics', path: '/marketplaceanalytics', description: 'Real-time trading metrics and volume analysis' },
+        { title: 'Marketplace Traders', path: '/marketplacetraders', description: 'Leading traders and their performance metrics' },
+        { title: 'Marketplace Wash Traders', path: '/marketplacewashtraders', description: 'Identify suspicious trading patterns' },
+        { title: 'NFT Marketplace Overview', path: '/nftmarketplace', description: 'Detailed marketplace volume breakdown' }
       ]
     },
     {

@@ -10,37 +10,133 @@ const CollectionWashtrade = () => {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [blockchainFilter, setBlockchainFilter] = useState('');
   const [riskFilter, setRiskFilter] = useState('');
 
   useEffect(() => {
-    const options = {
-      method: 'GET',
-      headers: {
-        accept: 'application/json',
-        'x-api-key': process.env.REACT_APP_X_API_KEY
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch(
+          'https://api.unleashnfts.com/api/v2/nft/collection/washtrade?blockchain=ethereum&time_range=24h&sort_by=washtrade_volume&sort_order=desc&offset=0&limit=30',
+          {
+            headers: {
+              'x-api-key': process.env.REACT_APP_X_API_KEY,
+              'accept': 'application/json'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Wash Trade API Response:', result);
+
+        if (!result.data || !Array.isArray(result.data)) {
+          throw new Error('Invalid data format received from wash trade API');
+        }
+
+        // Process wash trade data first
+        const washTradeData = result.data.map(item => {
+          const washtrade_assets = parseInt(item.washtrade_assets) || 0;
+          const washtrade_suspect_sales = parseInt(item.washtrade_suspect_sales) || 0;
+          const washtrade_volume = parseFloat(item.washtrade_volume) || 0;
+          const wash_trade_ratio = washtrade_assets > 0 ? (washtrade_suspect_sales / washtrade_assets) : 0;
+
+          return {
+            contract_address: item.contract_address,
+            washtrade_volume,
+            washtrade_volume_change: parseFloat(item.washtrade_volume_change) || 0,
+            washtrade_suspect_sales,
+            washtrade_assets,
+            washtrade_wallets: parseInt(item.washtrade_wallets) || 0,
+            washtrade_wallets_change: parseFloat(item.washtrade_wallets_change) || 0,
+            wash_trade_ratio,
+            blockchain: item.blockchain || 'ethereum'
+          };
+        });
+
+        // Sort data by wash trade volume in descending order
+        washTradeData.sort((a, b) => b.washtrade_volume - a.washtrade_volume);
+
+        // Fetch metadata for each collection
+        const collectionsWithMetadata = await Promise.all(
+          washTradeData.map(async (item) => {
+            try {
+              const metadataResponse = await fetch(
+                `https://api.unleashnfts.com/api/v2/nft/collection/metadata?blockchain=ethereum&contract_address=${item.contract_address}`,
+                {
+                  headers: {
+                    'x-api-key': process.env.REACT_APP_X_API_KEY,
+                    'accept': 'application/json'
+                  }
+                }
+              );
+
+              if (!metadataResponse.ok) {
+                console.warn(`Metadata fetch failed for ${item.contract_address}`);
+                return {
+                  ...item,
+                  name: `Collection ${item.contract_address.slice(0, 6)}...`,
+                  thumbnail_url: null,
+                };
+              }
+
+              const metadata = await metadataResponse.json();
+              
+              if (!metadata.data) {
+                console.warn(`Invalid metadata format for ${item.contract_address}`);
+                return {
+                  ...item,
+                  name: `Collection ${item.contract_address.slice(0, 6)}...`,
+                  thumbnail_url: null,
+                };
+              }
+
+              return {
+                ...item,
+                name: metadata.data.name || `Collection ${item.contract_address.slice(0, 6)}...`,
+                thumbnail_url: metadata.data.image_url || null,
+              };
+            } catch (error) {
+              console.error(`Error fetching metadata for ${item.contract_address}:`, error);
+              return {
+                ...item,
+                name: `Collection ${item.contract_address.slice(0, 6)}...`,
+                thumbnail_url: null,
+              };
+            }
+          })
+        );
+
+        setData(collectionsWithMetadata);
+        setFilteredData(collectionsWithMetadata);
+      } catch (error) {
+        console.error('Error in data fetching:', error);
+        setError(error.message);
+        setData([]);
+        setFilteredData([]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetch('https://api.unleashnfts.com/api/v2/nft/collection/washtrade?blockchain=ethereum&time_range=24h&sort_by=name&sort_order=desc&offset=0&limit=30', options)
-      .then(response => response.json())
-      .then(response => {
-        setData(response.data);
-        setFilteredData(response.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+    fetchData();
   }, []);
 
   useEffect(() => {
+    if (!data || !Array.isArray(data)) return;
+    
     const filtered = data.filter(item => {
-      const nameMatch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const nameMatch = item.name?.toLowerCase().includes(searchTerm.toLowerCase());
       const blockchainMatch = !blockchainFilter || item.blockchain === blockchainFilter;
-      const risk = getRiskLevel(item.washtrade_suspect_sales_ratio);
+      const risk = getRiskLevel(item.wash_trade_ratio);
       const riskMatch = !riskFilter || risk.text === riskFilter;
       return nameMatch && blockchainMatch && riskMatch;
     });
@@ -48,14 +144,15 @@ const CollectionWashtrade = () => {
   }, [searchTerm, blockchainFilter, riskFilter, data]);
 
   const getRiskLevel = (ratio) => {
-    if (!ratio || ratio === 0) return { text: 'No Risk', color: 'text-green-500' };
-    if (ratio >= 0.0002) return { text: 'High Risk', color: 'text-red-500' };
-    if (ratio >= 0.0001) return { text: 'Medium Risk', color: 'text-yellow-500' };
-    return { text: 'Low Risk', color: 'text-blue-500' };
+    if (typeof ratio !== 'number' || isNaN(ratio)) return { text: 'No Risk', color: 'text-green-500' };
+    if (ratio >= 0.5) return { text: 'High Risk', color: 'text-red-500' };
+    if (ratio >= 0.25) return { text: 'Medium Risk', color: 'text-orange-500' };
+    if (ratio > 0) return { text: 'Low Risk', color: 'text-yellow-500' };
+    return { text: 'No Risk', color: 'text-green-500' };
   };
 
   const formatVolume = (volume) => {
-    if (!volume) return '$0';
+    if (typeof volume !== 'number' || isNaN(volume)) return '$0';
     if (volume >= 1000000) return `$${(volume / 1000000).toFixed(2)}M`;
     if (volume >= 1000) return `$${(volume / 1000).toFixed(2)}K`;
     return `$${volume.toFixed(2)}`;
@@ -75,19 +172,17 @@ const CollectionWashtrade = () => {
       <span className="text-red-500">↓ {Math.abs(change * 100).toFixed(2)}%</span>;
   };
 
-  // Get top 3 collections by wash trade volume
-  const topCollections = [...data]
-    .sort((a, b) => b.washtrade_volume - a.washtrade_volume)
-    .slice(0, 3);
-
-  const headers = [
-    'Collection',
-    'Volume (24h)',
-    'Wash Trade Ratio',
-    'Risk Level',
-    'Suspect Sales',
-    'Wallets'
-  ];
+  const getTopCollections = () => {
+    return filteredData
+      .sort((a, b) => b.washtrade_volume - a.washtrade_volume)
+      .slice(0, 3)
+      .map(collection => ({
+        name: collection.name,
+        volume: formatVolume(collection.washtrade_volume),
+        ratio: (collection.wash_trade_ratio * 100).toFixed(2),
+        risk: getRiskLevel(collection.wash_trade_ratio).text
+      }));
+  };
 
   const tableData = filteredData.map(item => ({
     collection: (
@@ -95,56 +190,75 @@ const CollectionWashtrade = () => {
         {item.thumbnail_url && (
           <img 
             src={item.thumbnail_url} 
-            alt={item.name} 
+            alt={item.name || `Collection ${item.contract_address.slice(0, 6)}...`} 
             className="w-6 h-6 rounded-full"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.style.display = 'none';
+            }}
           />
         )}
-        <span>{item.name}</span>
+        <div>
+          <p className="font-medium">{item.name || `Collection ${item.contract_address.slice(0, 6)}...`}</p>
+          <p className="text-xs text-gray-500">{item.contract_address}</p>
+        </div>
       </div>
     ),
     volume: (
       <div>
-        {formatVolume(item.washtrade_volume)}
-        <div className="text-xs">
-          {getVolumeChangeIndicator(item.washtrade_volume_change)}
-        </div>
+        <p>{formatVolume(item.washtrade_volume)}</p>
+        {getVolumeChangeIndicator(item.washtrade_volume_change)}
       </div>
     ),
-    ratio: (
+    washTradeRatio: (
       <div>
-        {(item.washtrade_suspect_sales_ratio * 100).toFixed(4)}%
-        <div className="text-xs">
-          {item.washtrade_suspect_sales_ratio_change && 
-            (item.washtrade_suspect_sales_ratio_change > 0 ? 
-              <span className="text-red-500">↑</span> : 
-              <span className="text-green-500">↓</span>
-            )
-          }
-        </div>
+        <p>{(item.wash_trade_ratio * 100).toFixed(2)}%</p>
+        {getWalletChangeIndicator(item.washtrade_suspect_sales_change)}
       </div>
     ),
-    risk: (
-      <span className={getRiskLevel(item.washtrade_suspect_sales_ratio).color}>
-        {getRiskLevel(item.washtrade_suspect_sales_ratio).text}
-      </span>
+    riskLevel: (
+      <div className={getRiskLevel(item.wash_trade_ratio).color}>
+        {getRiskLevel(item.wash_trade_ratio).text}
+      </div>
     ),
-    sales: (
+    suspectSales: (
       <div>
-        {item.washtrade_suspect_sales || 0}
-        <div className="text-xs">
-          {getVolumeChangeIndicator(item.washtrade_suspect_sales_change)}
-        </div>
+        {item.washtrade_suspect_sales}
+        <span className="text-gray-500 text-sm"> of {item.washtrade_assets} total</span>
       </div>
     ),
-    wallets: (
-      <div>
-        {item.washtrade_wallets || 0}
-        <div className="text-xs">
-          {getWalletChangeIndicator(item.washtrade_wallets_change)}
-        </div>
-      </div>
-    )
+    suspectWallets: item.washtrade_wallets
   }));
+
+  const headers = [
+    'Collection',
+    'Wash Trade Volume (24h)',
+    'Wash Trade Ratio',
+    'Risk Level',
+    'Suspect Sales',
+    'Suspect Wallets'
+  ];
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-4">
+        <BackButton />
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-4">
+        <BackButton />
+        <div className="text-center text-red-500 p-4 rounded-lg bg-red-100 dark:bg-red-900/20">
+          <p className="font-semibold">{error}</p>
+          <p className="text-sm mt-2">Please make sure your API key is correctly configured.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -194,16 +308,16 @@ const CollectionWashtrade = () => {
 
         {/* Top Collections */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {topCollections.map((collection, index) => (
+          {getTopCollections().map((collection, index) => (
             <FuturisticCard
               key={index}
               className="p-4"
               gradient={`from-${index === 0 ? 'red' : index === 1 ? 'orange' : 'yellow'}-500/10 to-${index === 0 ? 'pink' : index === 1 ? 'red' : 'orange'}-500/10`}
             >
               <div className="flex items-center space-x-2 mb-2">
-                {collection.thumbnail_url && (
+                {collection.thumbnail && (
                   <img 
-                    src={collection.thumbnail_url} 
+                    src={collection.thumbnail} 
                     alt={collection.name} 
                     className="w-8 h-8 rounded-full"
                   />
@@ -212,20 +326,20 @@ const CollectionWashtrade = () => {
               </div>
               <div className="space-y-1">
                 <p className="text-sm opacity-80">
-                  Volume: {formatVolume(collection.washtrade_volume)}
+                  Volume: {collection.volume}
                   <span className="ml-2 text-xs">
-                    {getVolumeChangeIndicator(collection.washtrade_volume_change)}
+                    {getVolumeChangeIndicator(collection.change)}
                   </span>
                 </p>
                 <p className="text-sm opacity-80">
-                  Wash Trade Ratio: {(collection.washtrade_suspect_sales_ratio * 100).toFixed(4)}%
+                  Wash Trade Ratio: {collection.ratio}%
                 </p>
                 <div className="flex justify-between text-xs">
-                  <span className={getRiskLevel(collection.washtrade_suspect_sales_ratio).color}>
-                    {getRiskLevel(collection.washtrade_suspect_sales_ratio).text}
+                  <span className={getRiskLevel(collection.ratio / 100).color}>
+                    {collection.risk}
                   </span>
                   <span>
-                    {collection.washtrade_wallets} wallets
+                    {collection.ratio}%
                   </span>
                 </div>
               </div>
