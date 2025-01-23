@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { FaChartLine, FaStore, FaImage, FaShieldAlt, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { NFTInsightsAPI } from '../api/nftInsightsEndpoints';
+import { FuturisticLoader } from './shared';
 
 const Home = () => {
   const { isDark } = useTheme();
@@ -35,6 +36,14 @@ const Home = () => {
 
     fetchMarketData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <FuturisticLoader size="large" text="Welcome to NFT Insights..." />
+      </div>
+    );
+  }
 
   const panels = [
     {
@@ -138,15 +147,8 @@ const Home = () => {
           </p>
         </div>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-          </div>
-        )}
-
         {/* Error State */}
-        {error && !loading && (
+        {error && (
           <div className="flex justify-center items-center py-8">
             <div className={`text-lg ${isDark ? 'text-red-400' : 'text-red-600'}`}>
               {error}
@@ -155,7 +157,7 @@ const Home = () => {
         )}
 
         {/* Three Panel Layout */}
-        {!loading && !error && (
+        {!error && (
           <div className="flex-1 flex flex-col lg:flex-row p-4 gap-6">
             {panels.map((panel, index) => (
               <motion.div

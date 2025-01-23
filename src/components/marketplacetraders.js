@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import BackButton from './BackButton';
+import { FuturisticLoader } from './shared';
+import { useTheme } from '../context/ThemeContext';
 
 const NftMarketplaceTraders = () => {
   const [data, setData] = useState([]);
@@ -8,6 +10,8 @@ const NftMarketplaceTraders = () => {
   const [nameFilter, setNameFilter] = useState('');
   const [suggestionFilter, setSuggestionFilter] = useState('');
   const [suggestions, setSuggestions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const options = {
@@ -24,6 +28,7 @@ const NftMarketplaceTraders = () => {
           .filter(item => item.traders_change !== null && item.traders_change !== undefined)
           .sort((a, b) => b.traders_change - a.traders_change);
         setSuggestions(sortedData.slice(0, 3));
+        setIsLoading(false);
       })
       .catch(err => console.error(err));
   }, []);
@@ -54,10 +59,18 @@ const NftMarketplaceTraders = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <FuturisticLoader size="large" text="Loading NFT Marketplace Traders..." />
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto p-4">
+    <div className={`container mx-auto p-4 min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <BackButton />
-      <h1 className="text-4xl font-bold mb-6 text-center text-blue-400">NFT Marketplace Traders</h1>
+      <h1 className={`text-4xl font-bold mb-6 text-center text-blue-400 ${isDark ? 'text-white' : 'text-black'}`}>NFT Marketplace Traders</h1>
       <div className="mb-4 flex justify-between">
         <div className="w-1/3 pr-2">
           <label className="block mb-2">Filter by Blockchain:</label>
@@ -99,13 +112,13 @@ const NftMarketplaceTraders = () => {
         </div>
       </div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-4 text-blue-400">Top Suggestions</h2>
+        <h2 className={`text-2xl font-bold mb-4 text-blue-400 ${isDark ? 'text-white' : 'text-black'}`}>Top Suggestions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {suggestions.map((item, index) => {
             const suggestion = getSuggestion(item);
             return (
               <div key={index} className="bg-gray-800 p-4 rounded-lg shadow-lg hover:bg-gray-700 transition duration-300">
-                <h2 className="text-xl font-bold mb-2 text-white">{item.name}</h2>
+                <h2 className={`text-xl font-bold mb-2 text-white ${isDark ? 'text-white' : 'text-black'}`}>{item.name}</h2>
                 <p className="text-gray-400">Blockchain: {item.blockchain}</p>
                 <p className="text-gray-400">Traders: {item.traders}</p>
                 <p className="text-gray-400">Traders Change: {item.traders_change ? item.traders_change.toFixed(2) + '%' : 'N/A'}</p>
@@ -128,7 +141,7 @@ const NftMarketplaceTraders = () => {
           const suggestion = getSuggestion(item);
           return (
             <div key={index} className="bg-gray-800 p-4 rounded-lg shadow-lg hover:bg-gray-700 transition duration-300">
-              <h2 className="text-xl font-bold mb-2 text-white">{item.name}</h2>
+              <h2 className={`text-xl font-bold mb-2 text-white ${isDark ? 'text-white' : 'text-black'}`}>{item.name}</h2>
               <p className="text-gray-400">Blockchain: {item.blockchain}</p>
               <p className="text-gray-400">Traders: {item.traders}</p>
               <p className="text-gray-400">Traders Change: {item.traders_change ? item.traders_change.toFixed(2) + '%' : 'N/A'}</p>

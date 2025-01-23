@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import Loader from './Loader';
+import { FuturisticLoader, FuturisticCard } from './shared';
+import { useTheme } from '../context/ThemeContext';
+import { motion } from 'framer-motion';
 
 const NftMarketplaceOverview = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     // Simulate loading time
@@ -12,97 +15,107 @@ const NftMarketplaceOverview = () => {
     }, 1000);
   }, []);
 
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-900">
-        <Loader />
+      <div className="flex justify-center items-center min-h-screen">
+        <FuturisticLoader size="large" text="Loading Marketplace..." />
       </div>
     );
   }
 
+  const marketplaceFeatures = [
+    {
+      title: 'Trading Analytics',
+      description: 'Comprehensive trading analytics and market insights',
+      path: '/marketplaceanalytics',
+      gradient: 'from-blue-500 to-indigo-500'
+    },
+    {
+      title: 'Top Traders',
+      description: 'Track and analyze top performing traders',
+      path: '/marketplacetraders',
+      gradient: 'from-purple-500 to-pink-500'
+    },
+    {
+      title: 'Wash Trade Detection',
+      description: 'Advanced wash trading detection and analysis',
+      path: '/marketplacewashtraders',
+      gradient: 'from-green-500 to-teal-500'
+    },
+    {
+      title: 'Volume Analysis',
+      description: 'Detailed volume analysis and trends',
+      path: '/nftmarketplace',
+      gradient: 'from-orange-500 to-red-500'
+    },
+    {
+      title: 'Market Overview',
+      description: 'High-level market overview and statistics',
+      path: '/marketplaceoverview',
+      gradient: 'from-pink-500 to-rose-500'
+    },
+    {
+      title: 'Holder Analytics',
+      description: 'In-depth holder distribution analysis',
+      path: '/marketplaceholders',
+      gradient: 'from-indigo-500 to-violet-500'
+    }
+  ];
+
   return (
-    <div className="p-6 font-sans bg-gray-900 text-white min-h-screen">
+    <div className={`p-6 min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-5xl font-bold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600 animate-fade-in">
+        <motion.h1 
+          className={`text-5xl font-bold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600`}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           NFT Marketplace
-        </h1>
+        </motion.h1>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Link 
-            to="/nftmarketplace" 
-            className="group bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-2xl hover:scale-105 transform transition-all duration-300 border border-transparent hover:border-blue-500"
-          >
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-blue-500 rounded-lg group-hover:scale-110 transition-transform">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-bold ml-3 text-white group-hover:text-blue-400 transition-colors">NFT Marketplace Metadata</h2>
-            </div>
-            <p className="text-gray-400 group-hover:text-gray-300">View comprehensive metadata for the NFT marketplace.</p>
-          </Link>
-
-          <Link 
-            to="/nftmarketplaceholders" 
-            className="group bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-2xl hover:scale-105 transform transition-all duration-300 border border-transparent hover:border-purple-500"
-          >
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-purple-500 rounded-lg group-hover:scale-110 transition-transform">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-bold ml-3 text-white group-hover:text-purple-400 transition-colors">NFT Marketplace Holders</h2>
-            </div>
-            <p className="text-gray-400 group-hover:text-gray-300">View detailed analytics about NFT marketplace holders.</p>
-          </Link>
-
-          <Link 
-            to="/marketplacetraders" 
-            className="group bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-2xl hover:scale-105 transform transition-all duration-300 border border-transparent hover:border-green-500"
-          >
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-green-500 rounded-lg group-hover:scale-110 transition-transform">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-bold ml-3 text-white group-hover:text-green-400 transition-colors">NFT Marketplace Traders</h2>
-            </div>
-            <p className="text-gray-400 group-hover:text-gray-300">Track and analyze NFT marketplace trading activities.</p>
-          </Link>
-
-          <Link 
-            to="/marketplacewashtraders" 
-            className="group bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-2xl hover:scale-105 transform transition-all duration-300 border border-transparent hover:border-red-500"
-          >
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-red-500 rounded-lg group-hover:scale-110 transition-transform">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-bold ml-3 text-white group-hover:text-red-400 transition-colors">NFT Marketplace Wash Traders</h2>
-            </div>
-            <p className="text-gray-400 group-hover:text-gray-300">Monitor and identify potential wash trading activities.</p>
-          </Link>
-
-          <Link 
-            to="/marketplaceanalytics" 
-            className="group bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-2xl hover:scale-105 transform transition-all duration-300 border border-transparent hover:border-yellow-500"
-          >
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-yellow-500 rounded-lg group-hover:scale-110 transition-transform">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-bold ml-3 text-white group-hover:text-yellow-400 transition-colors">NFT Marketplace Analytics</h2>
-            </div>
-            <p className="text-gray-400 group-hover:text-gray-300">Access comprehensive analytics and insights.</p>
-          </Link>
-        </div>
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {marketplaceFeatures.map((feature, index) => (
+            <motion.div
+              key={feature.path}
+              variants={cardVariants}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Link to={feature.path}>
+                <FuturisticCard
+                  className="h-full p-6 transition-all duration-300"
+                  gradient={`bg-gradient-to-br ${feature.gradient}`}
+                >
+                  <h2 className="text-xl font-semibold mb-2">{feature.title}</h2>
+                  <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {feature.description}
+                  </p>
+                </FuturisticCard>
+              </Link>
+            </motion.div>
+          ))}
+        </motion.div>
       </div>
     </div>
   );

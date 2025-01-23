@@ -1,192 +1,234 @@
-# NFT Analytics Hub
+# NFT Insights
 
-Powered by bitsCrunch APIs - A comprehensive NFT analytics platform providing real-time market intelligence, collection insights, and advanced trading analysis.
+A comprehensive NFT analytics platform providing market intelligence and collection insights powered by bitsCrunch APIs.
 
-## 🌟 Core Features
-
-```mermaid
-graph TD
-    A[NFT Analytics Hub] --> B[NFT Insights]
-    A --> C[NFT Marketplace]
-    A --> D[NFT Collections]
-    
-    B --> B1[Market Analytics Report]
-    B --> B2[NFT Valuation Scores]
-    B --> B3[Traders Analysis]
-    B --> B4[Wash Trading Detection]
-    
-    C --> C1[Trading Analytics]
-    C --> C2[Top Traders]
-    C --> C3[Wash Trade Detection]
-    C --> C4[Volume Analysis]
-    
-    D --> D1[Collection Analytics]
-    D --> D2[Collection Scores]
-    D --> D3[Category Analysis]
-    D --> D4[Metadata Analysis]
-    D --> D5[Wash Trade Analysis]
-    D --> D6[Top Traders]
-    
-    style A fill:#ff9900,stroke:#333,stroke-width:2px
-    style B fill:#4f46e5,stroke:#333,stroke-width:2px
-    style C fill:#6366f1,stroke:#333,stroke-width:2px
-    style D fill:#9333ea,stroke:#333,stroke-width:2px
-```
-
-## 🚀 Quick Start
-
-1. Clone the repository
-```bash
-git clone https://github.com/himanshu-sugha/nft.git
-cd nft
-```
-
-2. Install dependencies
-```bash
-npm install
-```
-
-3. Create `.env` file with your bitsCrunch API key
-```bash
-REACT_APP_X_API_KEY=your_bitscrunch_api_key_here
-```
-
-4. Start the development server
-```bash
-npm start
-```
-
-## 🏗 Architecture
+## 🌟 Project Overview
 
 ```mermaid
-flowchart LR
-    subgraph Frontend
-        A[React App] --> B[Core Modules]
-        B --> C[NFT Insights]
-        B --> D[Marketplace Analytics]
-        B --> E[Collection Analysis]
+%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'arial' }}}%%
+flowchart TB
+    classDef default fill:#2A2A2A,stroke:#666,color:#FFF,stroke-width:2px
+    classDef primary fill:#1E3A8A,stroke:#2563EB,color:#FFF,stroke-width:2px
+    classDef secondary fill:#065F46,stroke:#059669,color:#FFF,stroke-width:2px
+    classDef tertiary fill:#6B21A8,stroke:#7C3AED,color:#FFF,stroke-width:2px
+    
+    A[NFT Insights Platform]:::primary
+    
+    subgraph Market[Market Intelligence]
+        B1[Analytics Report]:::tertiary
+        B2[Trader Insights]:::tertiary
+        B3[Holder Analysis]:::tertiary
+        B4[Score Metrics]:::tertiary
+        B5[Wash Trading]:::tertiary
     end
     
-    subgraph bitsCrunch Integration
-        F[API Layer] --> G[Market Data]
-        G --> H[Analytics Engine]
-        H --> I[Risk Metrics]
+    subgraph Marketplace[Marketplace Analytics]
+        C1[Market Overview]:::tertiary
+        C2[Trading Data]:::tertiary
+        C3[Holder Stats]:::tertiary
+        C4[Trader Metrics]:::tertiary
+        C5[Risk Analysis]:::tertiary
     end
     
-    A <--> F
+    subgraph Collection[Collection Analysis]
+        D1[Overview]:::tertiary
+        D2[Performance]:::tertiary
+        D3[Holders]:::tertiary
+        D4[Scores]:::tertiary
+        D5[Categories]:::tertiary
+        D6[Metadata]:::tertiary
+    end
     
-    style Frontend fill:#4f46e5,stroke:#333,stroke-width:2px
-    style bitsCrunch Integration fill:#9333ea,stroke:#333,stroke-width:2px
+    A --> Market:::secondary
+    A --> Marketplace:::secondary
+    A --> Collection:::secondary
+    
+    linkStyle default stroke:#666,stroke-width:2px
+    style A fill:#1E40AF,stroke:#3B82F6,stroke-width:4px,color:#FFF
+    style Market fill:#065F46,stroke:#059669,color:#FFF
+    style Marketplace fill:#065F46,stroke:#059669,color:#FFF
+    style Collection fill:#065F46,stroke:#059669,color:#FFF
 ```
 
-## 📊 Key Metrics
+## 🚀 Project Structure
 
-### NFT Insights
-- Market Cap Analysis
-- 24h Volume Tracking
-- Real-time Market Trends
-- AI-powered Valuation
-- Trading Pattern Analysis
-- Wash Trading Detection
+```
+src/
+├── api/
+│   ├── endpoints.js                    # API configuration
+│   └── nftInsightsEndpoints.js         # bitsCrunch API integration
+├── components/
+│   ├── nft/                           # NFT Insights components
+│   │   ├── NFTAnalyticsDashboard.js   # Analytics dashboard
+│   │   ├── NFTScoresInsights.js       # Scoring metrics
+│   │   ├── NFTholdersinsights.js      # Holder analysis
+│   │   ├── nftmarketanalyticsreport.js# Market analytics
+│   │   ├── nfttradersinsights.js      # Trader insights
+│   │   └── nftwashtradeinsights.js    # Wash trade detection
+│   ├── shared/                        # Shared components
+│   │   ├── FuturisticCard.js         # Card component
+│   │   ├── FuturisticTable.js        # Table component
+│   │   ├── FuturisticSelect.js       # Select input
+│   │   └── LoadingSpinner.js         # Loading state
+│   ├── Home.js                        # Main dashboard
+│   ├── Navbar.js                      # Navigation
+│   ├── CollectionAnalytics.js         # Collection metrics
+│   ├── CollectionCategories.js        # Category analysis
+│   ├── CollectionHolders.js           # Holder metrics
+│   ├── CollectionMetadata.js          # Metadata analysis
+│   ├── CollectionOverview.js          # Overview dashboard
+│   ├── CollectionScores.js            # Scoring system
+│   ├── CollectionTraders.js           # Trader analysis
+│   ├── CollectionWashtrade.js         # Wash trade detection
+│   ├── NftMarketplace.js             # Marketplace data
+│   └── NftMarketplaceOverview.js     # Market overview
+├── context/
+│   └── ThemeContext.js               # Theme management
+└── App.js                            # Main application routes
+```
 
-### NFT Marketplace
-- Active Trader Tracking
-- Total Volume Analysis
-- Cross-marketplace Metrics
-- Trader Performance
-- Suspicious Pattern Detection
-- Volume Breakdown
+## 💡 Key Features
 
-### NFT Collections
-- Top Collections Ranking
-- Collection Scoring
-- Performance Analytics
-- Category-wise Insights
-- Attribute Analysis
-- Trader Analytics
+### 1. NFT Market Insights
+- Market Analytics Report: Comprehensive market analysis
+- Traders Insights: Trading patterns and metrics
+- Holders Insights: Holder distribution and analysis
+- Scores Insights: NFT valuation metrics
+- Wash Trade Detection: Identify suspicious patterns
 
-## 🛠 Technology Stack
+### 2. NFT Marketplace Analytics
+- Marketplace Overview: Key marketplace metrics
+- Trading Analytics: Volume and transaction data
+- Holder Analysis: Distribution of holdings
+- Trader Metrics: Active trader analysis
+- Wash Trading Detection: Market manipulation checks
 
-- **Frontend**: React.js with Hooks
-- **Routing**: React Router v6
-- **State Management**: React Context
-- **UI Framework**: TailwindCSS
-- **Animations**: Framer Motion
-- **Icons**: React Icons (Fa)
-- **Charts**: Recharts
-- **API**: bitsCrunch NFT Analytics
+### 3. Collection Analysis
+- Collection Overview: Key performance indicators
+- Analytics Dashboard: Detailed metrics
+- Holder Analysis: Holder distribution
+- Scoring System: Collection rating
+- Trading Analysis: Volume and patterns
+- Category Analysis: Collection categorization
+- Metadata Analysis: Attribute exploration
+- Wash Trade Detection: Suspicious activity monitoring
 
-## 📱 Key Components
+## 🛠 Technical Implementation
 
-### NFT Insights Module
-- Market Analytics Dashboard
-- Valuation Score System
-- Trading Pattern Analysis
-- Wash Trade Detection Engine
+### Frontend Architecture
+- **Framework**: React 19.0.0
+- **Routing**: React Router v7
+- **State Management**: Context API
+- **Styling**: Tailwind CSS + Framer Motion
+- **Data Visualization**: Recharts
+- **Icons**: React Icons
 
-### Marketplace Analytics
-- Real-time Trading Metrics
-- Top Trader Rankings
-- Wash Trading Scanner
-- Volume Analytics
+### bitsCrunch API Integration
 
-### Collection Analysis
-- Performance Metrics
-- AI-based Scoring
-- Category Analysis
-- Metadata Explorer
-- Wash Trade Monitor
-- Trader Tracking
+The project demonstrates two approaches to API integration:
 
-## 🎨 UI Features
+1. **Centralized API Service** (in `nft/` components)
+```javascript
+// nftInsightsEndpoints.js
+const NFT_INSIGHTS_ENDPOINTS = {
+  HOLDERS: '/holders',
+  TRADERS: '/traders',
+  SCORES: '/scores',
+  WASH_TRADE: '/washtrade',
+  MARKET_ANALYTICS: '/analytics',
+  MARKET_SCORES: '/market-scores'
+};
 
-- Animated Background
-- Dark/Light Theme
-- Gradient Text Effects
-- Loading Animations
-- Error Handling
-- Responsive Design
-- Interactive Cards
+export const NFTInsightsAPI = {
+  getHoldersInsights: () => {...},
+  getTradersInsights: () => {...},
+  getScoresInsights: () => {...},
+  // ...other methods
+};
+```
 
-## 🔒 Security
+2. **Direct API Integration** (in marketplace and collection components)
+```javascript
+// Example from marketplace components
+const fetchData = async () => {
+  const options = {
+    method: 'GET',
+    headers: { 
+      accept: 'application/json', 
+      'x-api-key': process.env.REACT_APP_X_API_KEY 
+    }
+  };
 
-- Environment Variables
-- API Key Management
-- Error Boundaries
-- Data Validation
-- Secure Routing
+  const response = await fetch(
+    'https://api.unleashnfts.com/api/v2/nft/marketplace/...',
+    options
+  );
+  const data = await response.json();
+  // Process data...
+};
+```
 
-## 📖 API Integration
+### Key API Endpoints
 
-Comprehensive integration with bitsCrunch APIs:
+1. **NFT Market Insights**
+   - `/market/analytics`: Market overview and metrics
+   - `/market/traders`: Trading activity analysis
+   - `/market/holders`: Holder distribution data
+   - `/market/scores`: Market scoring metrics
+   - `/market/washtrade`: Wash trading detection
 
-- Market Analytics Endpoints
-- Collection Data Endpoints
-- Trader Analysis Endpoints
-- Wash Trading Detection
-- Valuation Metrics
+2. **Marketplace Analytics**
+   - `/marketplace/overview`: General marketplace data
+   - `/marketplace/holders`: Holder statistics
+   - `/marketplace/traders`: Trading activity
+   - `/marketplace/washtrade`: Suspicious activity
 
-## 🤝 Contributing
+3. **Collection Analysis**
+   - `/collection/analytics`: Collection metrics
+   - `/collection/holders`: Holder information
+   - `/collection/scores`: Collection scoring
+   - `/collection/metadata`: Collection attributes
+   - `/collection/categories`: Category data
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+### Authentication
+- All API requests require an API key
+- Key is stored in `.env` as `REACT_APP_X_API_KEY`
+- Secured headers using environment variables
 
-## 📄 License
+## 🚀 Getting Started
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+1. **Clone & Install**
+   ```bash
+   git clone https://github.com/himanshu-sugha/nft
+   npm install
+   ```
 
-## 🙏 Acknowledgments
+2. **Environment Setup**
+   Create a .env file:
+   ```env
+   REACT_APP_X_API_KEY=your_bitscrunch_api_key_here
+   ```
 
-- bitsCrunch for their comprehensive NFT analytics APIs
-- Open-source community
-- Contributors and testers
+3. **Development**
+   ```bash
+   npm start
+   ```
 
-## 📞 Support
+4. **Production Build**
+   ```bash
+   npm run build
+   ```
 
-For support and queries:
-- Create an issue in the repository
-- Email: support@nftinsights.com
-- Discord: [NFT Insights Community](https://discord.gg/nftinsights)
+## 🔧 Available Scripts
+
+- `npm start`: Run development server
+- `npm test`: Run test suite
+- `npm run build`: Create production build
+- `npm run eject`: Eject from Create React App
+
+## 📫 Contact & Support
+
+himanshusugha@gmail.com
+
+---
+Built with ❤️ by Himanshu Sugha

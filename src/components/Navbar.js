@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import { FaSun, FaMoon } from 'react-icons/fa';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [openSubmenu, setOpenSubmenu] = useState(null);
   const location = useLocation();
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
 
   const isActive = (path) => location.pathname === path;
 
@@ -128,6 +129,19 @@ const Navbar = () => {
               ))}
             </div>
           </div>
+
+          {/* Dark Mode Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className={`p-2 rounded-lg transition-colors duration-200 ${
+              isDark
+                ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400'
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+            }`}
+            aria-label="Toggle Dark Mode"
+          >
+            {isDark ? <FaSun className="w-5 h-5" /> : <FaMoon className="w-5 h-5" />}
+          </button>
 
           {/* Mobile menu button */}
           <div className="md:hidden">

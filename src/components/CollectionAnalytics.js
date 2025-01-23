@@ -6,6 +6,9 @@ import 'react-datepicker/dist/react-datepicker.css';
 import Select from 'react-select';
 import { useNavigate } from 'react-router-dom';
 import BackButton from './BackButton';
+import { motion } from 'framer-motion';
+import { useTheme } from '../context/ThemeContext';
+import { FuturisticLoader, FuturisticCard } from './shared';
 
 const CollectionAnalytics = () => {
   const [data, setData] = useState(null);
@@ -15,6 +18,8 @@ const CollectionAnalytics = () => {
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const options = {
@@ -26,6 +31,13 @@ const CollectionAnalytics = () => {
       .then(res => res.json())
       .then(res => setData(res.data))
       .catch(err => console.error(err));
+  }, []);
+
+  useEffect(() => {
+    // Simulate loading time
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
   }, []);
 
   const filterDataByDate = (data) => {
@@ -212,6 +224,14 @@ const CollectionAnalytics = () => {
       },
     }),
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <FuturisticLoader size="large" text="Loading Collection Analytics..." />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4">

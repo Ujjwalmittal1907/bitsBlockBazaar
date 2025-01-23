@@ -4,7 +4,9 @@ import LoadingSpinner from './shared/LoadingSpinner';
 import FuturisticCard from './shared/FuturisticCard';
 import FuturisticTable from './shared/FuturisticTable';
 import FuturisticSelect from './shared/FuturisticSelect';
+import FuturisticLoader from './shared/FuturisticLoader';
 import { motion } from 'framer-motion';
+import { useTheme } from '../context/ThemeContext';
 
 const CollectionWashtrade = () => {
   const [data, setData] = useState([]);
@@ -14,6 +16,7 @@ const CollectionWashtrade = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [blockchainFilter, setBlockchainFilter] = useState('');
   const [riskFilter, setRiskFilter] = useState('');
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -241,9 +244,8 @@ const CollectionWashtrade = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-4">
-        <BackButton />
-        <LoadingSpinner />
+      <div className="flex justify-center items-center min-h-screen">
+        <FuturisticLoader size="large" text="Loading Wash Trade Analysis..." />
       </div>
     );
   }

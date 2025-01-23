@@ -3,7 +3,9 @@ import BackButton from './BackButton';
 import LoadingSpinner from './shared/LoadingSpinner';
 import FuturisticCard from './shared/FuturisticCard';
 import FuturisticTable from './shared/FuturisticTable';
+import FuturisticLoader from './shared/FuturisticLoader';
 import { motion } from 'framer-motion';
+import { useTheme } from '../context/ThemeContext';
 
 const NftMarketplaceWashTraders = () => {
   const [data, setData] = useState([]);
@@ -12,6 +14,7 @@ const NftMarketplaceWashTraders = () => {
   const [blockchainFilter, setBlockchainFilter] = useState('');
   const [nameFilter, setNameFilter] = useState('');
   const [riskFilter, setRiskFilter] = useState('');
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const options = {
@@ -109,16 +112,25 @@ const NftMarketplaceWashTraders = () => {
     wallets: `${item.washtrade_wallets || 0}`
   }));
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <FuturisticLoader size="large" text="Loading Wash Trade Analysis..." />
+      </div>
+    );
+  }
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="container mx-auto p-4 space-y-6"
+      className={`container mx-auto p-4 space-y-6 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}
     >
       <BackButton />
       
       <FuturisticCard className="p-6">
-        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500 mb-4">
+        <h1 className={`text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r 
+          ${isDark ? 'from-red-400 to-purple-600' : 'from-red-600 to-purple-800'} mb-4`}>
           NFT Marketplace Wash Trading Analysis
         </h1>
         
@@ -190,18 +202,12 @@ const NftMarketplaceWashTraders = () => {
         </div>
 
         {/* Data Table */}
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <LoadingSpinner size="large" color="primary" />
-          </div>
-        ) : (
-          <FuturisticTable
-            headers={headers}
-            data={tableData}
-            isLoading={loading}
-            onRowClick={(row) => console.log('Clicked row:', row)}
-          />
-        )}
+        <FuturisticTable
+          headers={headers}
+          data={tableData}
+          isLoading={loading}
+          onRowClick={(row) => console.log('Clicked row:', row)}
+        />
       </FuturisticCard>
     </motion.div>
   );

@@ -1,10 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { useTheme } from '../context/ThemeContext';
+import { 
+  FuturisticLoader, 
+  FuturisticCard, 
+  FuturisticTable,
+  FuturisticButton 
+} from './shared';
 import BackButton from './BackButton';
 
 const CollectionTraders = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // New state for filter
+  const [filter, setFilter] = useState('all'); 
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const options = {
@@ -36,7 +45,7 @@ const CollectionTraders = () => {
 
   const generateUseCase = (item) => {
     return (
-      <div key={item.contract_address} className="bg-gray-800 p-4 rounded-lg shadow-lg">
+      <FuturisticCard key={item.contract_address} className="bg-gray-800 p-4 rounded-lg shadow-lg">
         <h2 className="text-xl font-bold mb-2">{item.contract_address}</h2>
         {item.blockchain && <p className="text-gray-400 mb-2">Blockchain: {item.blockchain}</p>}
         {item.traders && <p className="text-gray-400 mb-2">Traders: {item.traders}</p>}
@@ -52,7 +61,7 @@ const CollectionTraders = () => {
           </div>
         </details>
         <p className={`mt-4 ${getSuggestions(item).color}`}>{getSuggestions(item).message}</p>
-      </div>
+      </FuturisticCard>
     );
   };
 
@@ -65,24 +74,28 @@ const CollectionTraders = () => {
     return false;
   }) : [];
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <FuturisticLoader size="large" text="Loading Collection Traders..." />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-4">
       <BackButton />
       <div className="p-6 font-sans bg-gray-900 text-white min-h-screen">
         <h1 className="text-4xl font-bold mb-6 text-center text-blue-400">Collection Traders</h1>
         <div className="mb-6 text-center">
-          <button className={`mx-2 px-4 py-2 ${filter === 'all' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('all')}>All</button>
-          <button className={`mx-2 px-4 py-2 ${filter === 'significant' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('significant')}>Significant</button>
-          <button className={`mx-2 px-4 py-2 ${filter === 'moderate' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('moderate')}>Moderate</button>
-          <button className={`mx-2 px-4 py-2 ${filter === 'stable' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('stable')}>Stable</button>
+          <FuturisticButton className={`mx-2 px-4 py-2 ${filter === 'all' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('all')}>All</FuturisticButton>
+          <FuturisticButton className={`mx-2 px-4 py-2 ${filter === 'significant' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('significant')}>Significant</FuturisticButton>
+          <FuturisticButton className={`mx-2 px-4 py-2 ${filter === 'moderate' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('moderate')}>Moderate</FuturisticButton>
+          <FuturisticButton className={`mx-2 px-4 py-2 ${filter === 'stable' ? 'bg-blue-500' : 'bg-gray-700'}`} onClick={() => setFilter('stable')}>Stable</FuturisticButton>
         </div>
-        {loading ? (
-          <p>Loading...</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredData.map(item => generateUseCase(item))}
-          </div>
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredData.map(item => generateUseCase(item))}
+        </div>
       </div>
     </div>
   );

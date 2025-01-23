@@ -24,6 +24,7 @@ import {
   Radar,
   Treemap
 } from 'recharts';
+import { FuturisticCard, FuturisticLoader, FuturisticButton } from '../shared';
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00C49F'];
 
@@ -37,6 +38,13 @@ const NFTAnalyticsDashboard = ({ data }) => {
   const [confidenceInterval, setConfidenceInterval] = useState(0.95); // 95% confidence
   const textColor = isDark ? '#E5E7EB' : '#1F2937';
   const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
+  if (!data) {
+    return <FuturisticLoader size="large" text="Loading Analytics..." />;
+  }
+
+  const timeRanges = ['1D', '1W', '1M', '3M', '1Y', 'ALL'];
+  const metrics = ['holders', 'whales', 'volume', 'price'];
 
   // Enhanced data transformation with statistical analysis
   const transformedData = useMemo(() => {
@@ -193,31 +201,83 @@ const NFTAnalyticsDashboard = ({ data }) => {
     );
   };
 
+  const renderChart = (chartData, type) => (
+    <FuturisticCard 
+      className="p-4 mb-6"
+      gradient="bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/5"
+    >
+      <ResponsiveContainer width="100%" height={400}>
+        <ComposedChart data={chartData} {...chartConfig}>
+          <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+          <XAxis
+            dataKey="timestamp"
+            stroke={textColor}
+            tickFormatter={(timestamp) => new Date(timestamp).toLocaleDateString()}
+          />
+          <YAxis stroke={textColor} />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend />
+          <Area
+            type="monotone"
+            dataKey={selectedMetric}
+            fill={COLORS[0]}
+            stroke={COLORS[0]}
+            fillOpacity={0.3}
+          />
+          <Line
+            type="monotone"
+            dataKey="movingAverage"
+            stroke={COLORS[1]}
+            dot={false}
+            strokeDasharray="5 5"
+          />
+          {showOutliers && statistics?.outliers.length > 0 && (
+            <Scatter
+              data={transformedData.filter(d => 
+                statistics.outliers.includes(d[selectedMetric])
+              )}
+              fill={COLORS[2]}
+            />
+          )}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </FuturisticCard>
+  );
+
   return (
     <div className="space-y-6">
       {/* Controls */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <select
-          value={selectedMetric}
-          onChange={(e) => setSelectedMetric(e.target.value)}
-          className={`p-2 rounded ${isDark ? 'bg-gray-700' : 'bg-white'} border border-gray-300`}
-        >
-          <option value="holders">Holders</option>
-          <option value="whales">Whales</option>
-          <option value="volume">Volume</option>
-          <option value="price">Price</option>
-        </select>
+      <FuturisticCard className="p-4">
+        <div className="flex flex-wrap gap-2">
+          {timeRanges.map(range => (
+            <FuturisticButton
+              key={range}
+              variant={activeTimeRange === range ? 'primary' : 'ghost'}
+              size="small"
+              onClick={() => setActiveTimeRange(range)}
+            >
+              {range}
+            </FuturisticButton>
+          ))}
+        </div>
+      </FuturisticCard>
 
-        <select
-          value={aggregationType}
-          onChange={(e) => setAggregationType(e.target.value)}
-          className={`p-2 rounded ${isDark ? 'bg-gray-700' : 'bg-white'} border border-gray-300`}
-        >
-          <option value="sum">Sum</option>
-          <option value="average">Average</option>
-          <option value="median">Median</option>
-        </select>
+      <FuturisticCard className="p-4">
+        <div className="flex flex-wrap gap-2">
+          {metrics.map(metric => (
+            <FuturisticButton
+              key={metric}
+              variant={selectedMetric === metric ? 'primary' : 'ghost'}
+              size="small"
+              onClick={() => setSelectedMetric(metric)}
+            >
+              {metric.charAt(0).toUpperCase() + metric.slice(1)}
+            </FuturisticButton>
+          ))}
+        </div>
+      </FuturisticCard>
 
+      <FuturisticCard className="p-4">
         <div className="flex items-center space-x-2">
           <label>Smoothing:</label>
           <input
@@ -229,7 +289,9 @@ const NFTAnalyticsDashboard = ({ data }) => {
             className="w-full"
           />
         </div>
+      </FuturisticCard>
 
+      <FuturisticCard className="p-4">
         <label className="flex items-center space-x-2">
           <input
             type="checkbox"
@@ -238,67 +300,36 @@ const NFTAnalyticsDashboard = ({ data }) => {
           />
           <span>Show Outliers</span>
         </label>
-      </div>
+      </FuturisticCard>
 
       {/* Main Chart */}
-      <div className="h-96">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={transformedData} {...chartConfig}>
-            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-            <XAxis
-              dataKey="timestamp"
-              stroke={textColor}
-              tickFormatter={(timestamp) => new Date(timestamp).toLocaleDateString()}
-            />
-            <YAxis stroke={textColor} />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend />
-            <Area
-              type="monotone"
-              dataKey={selectedMetric}
-              fill={COLORS[0]}
-              stroke={COLORS[0]}
-              fillOpacity={0.3}
-            />
-            <Line
-              type="monotone"
-              dataKey="movingAverage"
-              stroke={COLORS[1]}
-              dot={false}
-              strokeDasharray="5 5"
-            />
-            {showOutliers && statistics?.outliers.length > 0 && (
-              <Scatter
-                data={transformedData.filter(d => 
-                  statistics.outliers.includes(d[selectedMetric])
-                )}
-                fill={COLORS[2]}
-              />
-            )}
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
+      {renderChart(transformedData, 'main')}
 
       {/* Distribution Chart */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={distributionData}
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={5}
-                dataKey="value"
-              >
-                {distributionData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+          <FuturisticCard 
+            className="p-4"
+            gradient="bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/5"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={distributionData}
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {distributionData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </FuturisticCard>
         </div>
 
         {/* Trend Analysis */}
