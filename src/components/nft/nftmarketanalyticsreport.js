@@ -191,9 +191,11 @@ const NFTMarketAnalyticsReport = () => {
   };
 
   const getMetricData = () => {
+    if (!data) return null;
+    
     const metrics = {
       volume: {
-        trend: data.volume_trend,
+        trend: data.volume_trend || [],
         label: 'Volume',
         color: '#3B82F6',
         current: data.volume,
@@ -201,7 +203,7 @@ const NFTMarketAnalyticsReport = () => {
         isPrice: true
       },
       sales: {
-        trend: data.sales_trend,
+        trend: data.sales_trend || [],
         label: 'Sales',
         color: '#10B981',
         current: data.sales,
@@ -209,7 +211,7 @@ const NFTMarketAnalyticsReport = () => {
         isPrice: false
       },
       transactions: {
-        trend: data.transactions_trend,
+        trend: data.transactions_trend || [],
         label: 'Transactions',
         color: '#8B5CF6',
         current: data.transactions,
@@ -217,7 +219,7 @@ const NFTMarketAnalyticsReport = () => {
         isPrice: false
       },
       transfers: {
-        trend: data.transfers_trend,
+        trend: data.transfers_trend || [],
         label: 'Transfers',
         color: '#F59E0B',
         current: data.transfers,
@@ -229,10 +231,12 @@ const NFTMarketAnalyticsReport = () => {
   };
 
   const metricData = getMetricData();
-  const chartData = metricData.trend.map((value, index) => ({
-    time: new Date(data.block_dates[index]).toLocaleTimeString(),
-    value: value
-  }));
+  const chartData = metricData?.trend?.map((value, index) => ({
+    time: data?.block_dates?.[index] 
+      ? new Date(data.block_dates[index]).toLocaleTimeString() 
+      : `Point ${index + 1}`,
+    value: value || 0
+  })) || [];
 
   // Custom tooltip for the chart
   const CustomTooltip = ({ active, payload, label }) => {
@@ -240,8 +244,8 @@ const NFTMarketAnalyticsReport = () => {
       return (
         <div className="bg-[#1E293B] p-3 rounded-lg border border-gray-700">
           <p className="text-gray-400">{label}</p>
-          <p className="font-semibold" style={{ color: metricData.color }}>
-            {formatNumber(payload[0].value, metricData.isPrice)}
+          <p className="font-semibold" style={{ color: metricData?.color }}>
+            {formatNumber(payload[0].value, metricData?.isPrice)}
           </p>
         </div>
       );
@@ -267,20 +271,20 @@ const NFTMarketAnalyticsReport = () => {
           <AreaChart {...commonProps}>
             <defs>
               <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={metricData.color} stopOpacity={0.3}/>
-                <stop offset="95%" stopColor={metricData.color} stopOpacity={0}/>
+                <stop offset="5%" stopColor={metricData?.color} stopOpacity={0.3}/>
+                <stop offset="95%" stopColor={metricData?.color} stopOpacity={0}/>
               </linearGradient>
             </defs>
             <XAxis dataKey="time" {...commonAxisProps} />
             <YAxis 
               {...commonAxisProps}
-              tickFormatter={(value) => formatNumber(value, metricData.isPrice)}
+              tickFormatter={(value) => formatNumber(value, metricData?.isPrice)}
             />
             <Tooltip content={<CustomTooltip />} />
             <Area
               type="monotone"
               dataKey="value"
-              stroke={metricData.color}
+              stroke={metricData?.color}
               fillOpacity={1}
               fill="url(#colorGradient)"
             />
@@ -293,15 +297,15 @@ const NFTMarketAnalyticsReport = () => {
             <XAxis dataKey="time" {...commonAxisProps} />
             <YAxis 
               {...commonAxisProps}
-              tickFormatter={(value) => formatNumber(value, metricData.isPrice)}
+              tickFormatter={(value) => formatNumber(value, metricData?.isPrice)}
             />
             <Tooltip content={<CustomTooltip />} />
             <Line
               type="monotone"
               dataKey="value"
-              stroke={metricData.color}
+              stroke={metricData?.color}
               strokeWidth={2}
-              dot={{ fill: metricData.color }}
+              dot={{ fill: metricData?.color }}
               activeDot={{ r: 6 }}
             />
           </LineChart>
@@ -313,10 +317,10 @@ const NFTMarketAnalyticsReport = () => {
             <XAxis dataKey="time" {...commonAxisProps} />
             <YAxis 
               {...commonAxisProps}
-              tickFormatter={(value) => formatNumber(value, metricData.isPrice)}
+              tickFormatter={(value) => formatNumber(value, metricData?.isPrice)}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="value" fill={metricData.color} />
+            <Bar dataKey="value" fill={metricData?.color} />
           </BarChart>
         );
     }
@@ -457,11 +461,11 @@ const NFTMarketAnalyticsReport = () => {
           </div>
 
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">{getTimeRangeLabel()} {metricData.label} Trend</h2>
+            <h2 className="text-xl font-bold">{getTimeRangeLabel()} {metricData?.label} Trend</h2>
             <div className="bg-[#2D3748] px-3 py-1 rounded-lg">
-              <p className="text-sm">Current: {formatNumber(metricData.current, metricData.isPrice)}</p>
-              <p className={`text-xs ${metricData.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {getPercentageChange(metricData.change)}
+              <p className="text-sm">Current: {formatNumber(metricData?.current, metricData?.isPrice)}</p>
+              <p className={`text-xs ${metricData?.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {getPercentageChange(metricData?.change)}
               </p>
             </div>
           </div>

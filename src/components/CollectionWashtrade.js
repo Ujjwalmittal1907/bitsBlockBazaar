@@ -1,127 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import BackButton from './BackButton';
-import LoadingSpinner from './shared/LoadingSpinner';
-import FuturisticCard from './shared/FuturisticCard';
-import FuturisticTable from './shared/FuturisticTable';
-import FuturisticSelect from './shared/FuturisticSelect';
-import FuturisticLoader from './shared/FuturisticLoader';
-import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
+import { motion } from 'framer-motion';
+import { FiTrendingUp, FiTrendingDown, FiSearch, FiFilter, FiAlertTriangle } from 'react-icons/fi';
+import FuturisticLoader from './shared/FuturisticLoader';
+import { COLLECTION_ENDPOINTS, getApiOptions, buildUrl } from '../api/endpoints';
 
 const CollectionWashtrade = () => {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [timeRange, setTimeRange] = useState('24h');
+  const [blockchain, setBlockchain] = useState('ethereum');
   const [searchTerm, setSearchTerm] = useState('');
-  const [blockchainFilter, setBlockchainFilter] = useState('');
-  const [riskFilter, setRiskFilter] = useState('');
+  const [sortBy, setSortBy] = useState('washtrade_volume');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [riskFilter, setRiskFilter] = useState('all');
   const { isDark } = useTheme();
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      
       try {
-        const response = await fetch(
-          'https://api.unleashnfts.com/api/v2/nft/collection/washtrade?blockchain=ethereum&time_range=24h&sort_by=washtrade_volume&sort_order=desc&offset=0&limit=30',
-          {
-            headers: {
-              'x-api-key': process.env.REACT_APP_X_API_KEY,
-              'accept': 'application/json'
-            }
-          }
-        );
-
+        setLoading(true);
+        console.log('Fetching wash trade data...');
+        const params = {
+          time_range: timeRange,
+          blockchain: blockchain,
+          limit: 60,
+          sort_by: sortBy,
+          sort_order: sortOrder
+        };
+        
+        const url = buildUrl(COLLECTION_ENDPOINTS.WASHTRADE, params);
+        const response = await fetch(url, getApiOptions());
+        
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-
-        const result = await response.json();
-        console.log('Wash Trade API Response:', result);
-
-        if (!result.data || !Array.isArray(result.data)) {
-          throw new Error('Invalid data format received from wash trade API');
+        
+        const json = await response.json();
+        console.log('API Response:', json);
+        
+        if (!json.data || !Array.isArray(json.data)) {
+          console.error('Invalid data format:', json);
+          throw new Error('Invalid data format received');
         }
 
-        // Process wash trade data first
-        const washTradeData = result.data.map(item => {
-          const washtrade_assets = parseInt(item.washtrade_assets) || 0;
-          const washtrade_suspect_sales = parseInt(item.washtrade_suspect_sales) || 0;
-          const washtrade_volume = parseFloat(item.washtrade_volume) || 0;
-          const wash_trade_ratio = washtrade_assets > 0 ? (washtrade_suspect_sales / washtrade_assets) : 0;
-
-          return {
-            contract_address: item.contract_address,
-            washtrade_volume,
-            washtrade_volume_change: parseFloat(item.washtrade_volume_change) || 0,
-            washtrade_suspect_sales,
-            washtrade_assets,
-            washtrade_wallets: parseInt(item.washtrade_wallets) || 0,
-            washtrade_wallets_change: parseFloat(item.washtrade_wallets_change) || 0,
-            wash_trade_ratio,
-            blockchain: item.blockchain || 'ethereum'
-          };
-        });
-
-        // Sort data by wash trade volume in descending order
-        washTradeData.sort((a, b) => b.washtrade_volume - a.washtrade_volume);
-
-        // Fetch metadata for each collection
-        const collectionsWithMetadata = await Promise.all(
-          washTradeData.map(async (item) => {
-            try {
-              const metadataResponse = await fetch(
-                `https://api.unleashnfts.com/api/v2/nft/collection/metadata?blockchain=ethereum&contract_address=${item.contract_address}`,
-                {
-                  headers: {
-                    'x-api-key': process.env.REACT_APP_X_API_KEY,
-                    'accept': 'application/json'
-                  }
-                }
-              );
-
-              if (!metadataResponse.ok) {
-                console.warn(`Metadata fetch failed for ${item.contract_address}`);
-                return {
-                  ...item,
-                  name: `Collection ${item.contract_address.slice(0, 6)}...`,
-                  thumbnail_url: null,
-                };
-              }
-
-              const metadata = await metadataResponse.json();
-              
-              if (!metadata.data) {
-                console.warn(`Invalid metadata format for ${item.contract_address}`);
-                return {
-                  ...item,
-                  name: `Collection ${item.contract_address.slice(0, 6)}...`,
-                  thumbnail_url: null,
-                };
-              }
-
-              return {
-                ...item,
-                name: metadata.data.name || `Collection ${item.contract_address.slice(0, 6)}...`,
-                thumbnail_url: metadata.data.image_url || null,
-              };
-            } catch (error) {
-              console.error(`Error fetching metadata for ${item.contract_address}:`, error);
-              return {
-                ...item,
-                name: `Collection ${item.contract_address.slice(0, 6)}...`,
-                thumbnail_url: null,
-              };
-            }
-          })
-        );
-
-        setData(collectionsWithMetadata);
-        setFilteredData(collectionsWithMetadata);
+        setData(json.data);
+        setFilteredData(json.data);
+        console.log('Data set successfully:', json.data);
       } catch (error) {
-        console.error('Error in data fetching:', error);
+        console.error('Error fetching wash trade data:', error);
         setError(error.message);
         setData([]);
         setFilteredData([]);
@@ -131,239 +60,422 @@ const CollectionWashtrade = () => {
     };
 
     fetchData();
-  }, []);
+  }, [timeRange, blockchain, sortBy, sortOrder]);
 
+  const getWashTradeSeverity = (volume, assetsRatio) => {
+    if (volume > 100000 && assetsRatio > 0.5) return 'High';
+    if (volume > 50000 && assetsRatio > 0.3) return 'Medium';
+    return 'Low';
+  };
+
+  const calculateRiskScore = (item) => {
+    const totalAssets = item.washtrade_assets || 0;
+    const suspectSales = item.washtrade_suspect_sales || 0;
+    const volume = item.washtrade_volume || 0;
+    const assetsRatio = totalAssets > 0 ? suspectSales / totalAssets : 0;
+    return { 
+      severity: getWashTradeSeverity(volume, assetsRatio),
+      score: (volume * 0.4) + (assetsRatio * 0.6) // Weighted risk score
+    };
+  };
+
+  // Filter data when search term or risk filter changes
   useEffect(() => {
-    if (!data || !Array.isArray(data)) return;
+    if (!data) return;
     
     const filtered = data.filter(item => {
-      const nameMatch = item.name?.toLowerCase().includes(searchTerm.toLowerCase());
-      const blockchainMatch = !blockchainFilter || item.blockchain === blockchainFilter;
-      const risk = getRiskLevel(item.wash_trade_ratio);
-      const riskMatch = !riskFilter || risk.text === riskFilter;
-      return nameMatch && blockchainMatch && riskMatch;
+      const addressMatch = item.contract_address.toLowerCase().includes(searchTerm.toLowerCase());
+      if (!addressMatch) return false;
+
+      if (riskFilter === 'all') return true;
+
+      const { severity } = calculateRiskScore(item);
+      return severity.toLowerCase() === riskFilter.toLowerCase();
     });
+
+    // Sort by risk score if sorting by risk
+    if (sortBy === 'risk') {
+      filtered.sort((a, b) => {
+        const scoreA = calculateRiskScore(a).score;
+        const scoreB = calculateRiskScore(b).score;
+        return sortOrder === 'desc' ? scoreB - scoreA : scoreA - scoreB;
+      });
+    }
+
     setFilteredData(filtered);
-  }, [searchTerm, blockchainFilter, riskFilter, data]);
+  }, [searchTerm, riskFilter, data, sortBy, sortOrder]);
 
-  const getRiskLevel = (ratio) => {
-    if (typeof ratio !== 'number' || isNaN(ratio)) return { text: 'No Risk', color: 'text-green-500' };
-    if (ratio >= 0.5) return { text: 'High Risk', color: 'text-red-500' };
-    if (ratio >= 0.25) return { text: 'Medium Risk', color: 'text-orange-500' };
-    if (ratio > 0) return { text: 'Low Risk', color: 'text-yellow-500' };
-    return { text: 'No Risk', color: 'text-green-500' };
-  };
-
-  const formatVolume = (volume) => {
-    if (typeof volume !== 'number' || isNaN(volume)) return '$0';
-    if (volume >= 1000000) return `$${(volume / 1000000).toFixed(2)}M`;
-    if (volume >= 1000) return `$${(volume / 1000).toFixed(2)}K`;
-    return `$${volume.toFixed(2)}`;
-  };
-
-  const getVolumeChangeIndicator = (change) => {
-    if (!change) return null;
-    return change > 0 ? 
-      <span className="text-green-500">↑ {change.toFixed(2)}%</span> : 
-      <span className="text-red-500">↓ {Math.abs(change).toFixed(2)}%</span>;
-  };
-
-  const getWalletChangeIndicator = (change) => {
-    if (!change) return null;
-    return change > 0 ? 
-      <span className="text-green-500">↑ {(change * 100).toFixed(2)}%</span> : 
-      <span className="text-red-500">↓ {Math.abs(change * 100).toFixed(2)}%</span>;
-  };
-
-  const getTopCollections = () => {
-    return filteredData
-      .sort((a, b) => b.washtrade_volume - a.washtrade_volume)
-      .slice(0, 3)
-      .map(collection => ({
-        name: collection.name,
-        volume: formatVolume(collection.washtrade_volume),
-        ratio: (collection.wash_trade_ratio * 100).toFixed(2),
-        risk: getRiskLevel(collection.wash_trade_ratio).text
-      }));
-  };
-
-  const tableData = filteredData.map(item => ({
-    collection: (
-      <div className="flex items-center space-x-2">
-        {item.thumbnail_url && (
-          <img 
-            src={item.thumbnail_url} 
-            alt={item.name || `Collection ${item.contract_address.slice(0, 6)}...`} 
-            className="w-6 h-6 rounded-full"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.style.display = 'none';
-            }}
-          />
-        )}
-        <div>
-          <p className="font-medium">{item.name || `Collection ${item.contract_address.slice(0, 6)}...`}</p>
-          <p className="text-xs text-gray-500">{item.contract_address}</p>
-        </div>
-      </div>
-    ),
-    volume: (
-      <div>
-        <p>{formatVolume(item.washtrade_volume)}</p>
-        {getVolumeChangeIndicator(item.washtrade_volume_change)}
-      </div>
-    ),
-    washTradeRatio: (
-      <div>
-        <p>{(item.wash_trade_ratio * 100).toFixed(2)}%</p>
-        {getWalletChangeIndicator(item.washtrade_suspect_sales_change)}
-      </div>
-    ),
-    riskLevel: (
-      <div className={getRiskLevel(item.wash_trade_ratio).color}>
-        {getRiskLevel(item.wash_trade_ratio).text}
-      </div>
-    ),
-    suspectSales: (
-      <div>
-        {item.washtrade_suspect_sales}
-        <span className="text-gray-500 text-sm"> of {item.washtrade_assets} total</span>
-      </div>
-    ),
-    suspectWallets: item.washtrade_wallets
-  }));
-
-  const headers = [
-    'Collection',
-    'Wash Trade Volume (24h)',
-    'Wash Trade Ratio',
-    'Risk Level',
-    'Suspect Sales',
-    'Suspect Wallets'
+  const timeRangeOptions = [
+    { value: '24h', label: 'Last 24 Hours' },
+    { value: '7d', label: 'Last 7 Days' },
+    { value: '30d', label: 'Last 30 Days' },
+    { value: '90d', label: 'Last 90 Days' },
+    { value: 'all', label: 'All Time' }
   ];
+
+  const formatNumber = (num) => {
+    if (num === null || num === undefined) return 'N/A';
+    return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  };
+
+  const getChangeColor = (change) => {
+    if (change === null || change === undefined) return 'text-gray-500';
+    return change >= 0 ? 'text-green-500' : 'text-red-500';
+  };
+
+  const getChangeIcon = (change) => {
+    if (change === null || change === undefined) return null;
+    return change >= 0 ? <FiTrendingUp className="inline" /> : <FiTrendingDown className="inline" />;
+  };
+
+  const getSummaryAndSuggestions = (item) => {
+    const totalAssets = item.washtrade_assets;
+    const suspectSales = item.washtrade_suspect_sales;
+    const volume = item.washtrade_volume;
+    const assetsRatio = suspectSales / totalAssets;
+    const severity = getWashTradeSeverity(volume, assetsRatio);
+    
+    let summary = '';
+    let suggestions = [];
+
+    // Generate summary based on metrics
+    if (severity === 'High') {
+      summary = 'Significant wash trading activity detected';
+      suggestions = [
+        'Monitor closely for price manipulation',
+        'Exercise caution when trading',
+        'Review recent transaction history'
+      ];
+    } else if (severity === 'Medium') {
+      summary = 'Moderate wash trading patterns observed';
+      suggestions = [
+        'Consider waiting for market stabilization',
+        'Track daily volume changes',
+        'Compare with similar collections'
+      ];
+    } else {
+      summary = 'Low wash trading activity';
+      suggestions = [
+        'Continue regular monitoring',
+        'Watch for sudden changes in patterns',
+        'Normal trading activity recommended'
+      ];
+    }
+
+    return { summary, suggestions, severity };
+  };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <FuturisticLoader size="large" text="Loading Wash Trade Analysis..." />
+        <FuturisticLoader size="large" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-4">
-        <BackButton />
-        <div className="text-center text-red-500 p-4 rounded-lg bg-red-100 dark:bg-red-900/20">
-          <p className="font-semibold">{error}</p>
-          <p className="text-sm mt-2">Please make sure your API key is correctly configured.</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className={`p-4 rounded-lg ${isDark ? 'bg-red-900/20' : 'bg-red-100'}`}>
+          <h2 className="text-xl font-semibold text-red-500 mb-2">Error Loading Data</h2>
+          <p className="text-sm">{error}</p>
+          <p className="text-sm mt-2">Please check your API key and try again.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+          <h2 className="text-xl font-semibold mb-2">No Data Available</h2>
+          <p className="text-sm">No wash trading data found for the selected time range and blockchain.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="container mx-auto p-4 space-y-6"
-    >
-      <BackButton />
-
-      <FuturisticCard className="p-6">
-        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500 mb-4">
-          NFT Collection Wash Trading Analysis
+    <div className="container mx-auto px-4">
+      <div className="mb-8">
+        <h1 className={`text-3xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          Collection Wash Trading Analysis
         </h1>
-
+        
         {/* Search and Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Search by collection name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white/5 border border-gray-700/30 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-          />
-          <FuturisticSelect
-            value={blockchainFilter}
-            onChange={setBlockchainFilter}
-            options={[
-              { value: '', label: 'All Blockchains' },
-              { value: 'ethereum', label: 'Ethereum' },
-              { value: 'polygon', label: 'Polygon' }
-            ]}
-            placeholder="Select Blockchain"
-          />
-          <FuturisticSelect
-            value={riskFilter}
-            onChange={setRiskFilter}
-            options={[
-              { value: '', label: 'All Risk Levels' },
-              { value: 'High Risk', label: 'High Risk' },
-              { value: 'Medium Risk', label: 'Medium Risk' },
-              { value: 'Low Risk', label: 'Low Risk' },
-              { value: 'No Risk', label: 'No Risk' }
-            ]}
-            placeholder="Select Risk Level"
-          />
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by contract address..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`w-full pl-10 pr-4 py-2 rounded-lg border ${
+                isDark 
+                  ? 'bg-gray-800 border-gray-700 text-white' 
+                  : 'bg-white border-gray-300'
+              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            />
+          </div>
+
+          {/* Risk Filter */}
+          <div className="flex gap-4">
+            <select
+              value={riskFilter}
+              onChange={(e) => setRiskFilter(e.target.value)}
+              className={`px-4 py-2 rounded-lg border ${
+                isDark 
+                  ? 'bg-gray-800 border-gray-700 text-white' 
+                  : 'bg-white border-gray-300'
+              }`}
+            >
+              <option value="all">All Risk Levels</option>
+              <option value="high">High Risk</option>
+              <option value="medium">Medium Risk</option>
+              <option value="low">Low Risk</option>
+            </select>
+
+            {/* Sort Options */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className={`px-4 py-2 rounded-lg border ${
+                isDark 
+                  ? 'bg-gray-800 border-gray-700 text-white' 
+                  : 'bg-white border-gray-300'
+              }`}
+            >
+              <option value="risk">Sort by Risk Level</option>
+              <option value="washtrade_volume">Sort by Volume</option>
+              <option value="washtrade_assets">Sort by Assets</option>
+              <option value="washtrade_suspect_sales">Sort by Suspect Sales</option>
+            </select>
+
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className={`px-4 py-2 rounded-lg border ${
+                isDark 
+                  ? 'bg-gray-800 border-gray-700 text-white' 
+                  : 'bg-white border-gray-300'
+              }`}
+            >
+              <option value="desc">Highest First</option>
+              <option value="asc">Lowest First</option>
+            </select>
+          </div>
         </div>
 
-        {/* Top Collections */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {getTopCollections().map((collection, index) => (
-            <FuturisticCard
-              key={index}
-              className="p-4"
-              gradient={`from-${index === 0 ? 'red' : index === 1 ? 'orange' : 'yellow'}-500/10 to-${index === 0 ? 'pink' : index === 1 ? 'red' : 'orange'}-500/10`}
+        {/* Time Range Filter */}
+        <div className="flex gap-4 mb-6 overflow-x-auto pb-2">
+          {timeRangeOptions.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => setTimeRange(option.value)}
+              className={`px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
+                timeRange === option.value
+                  ? isDark
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-blue-500 text-white'
+                  : isDark
+                  ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
             >
-              <div className="flex items-center space-x-2 mb-2">
-                {collection.thumbnail && (
-                  <img 
-                    src={collection.thumbnail} 
-                    alt={collection.name} 
-                    className="w-8 h-8 rounded-full"
-                  />
-                )}
-                <h3 className="font-semibold">{collection.name}</h3>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm opacity-80">
-                  Volume: {collection.volume}
-                  <span className="ml-2 text-xs">
-                    {getVolumeChangeIndicator(collection.change)}
-                  </span>
-                </p>
-                <p className="text-sm opacity-80">
-                  Wash Trade Ratio: {collection.ratio}%
-                </p>
-                <div className="flex justify-between text-xs">
-                  <span className={getRiskLevel(collection.ratio / 100).color}>
-                    {collection.risk}
-                  </span>
-                  <span>
-                    {collection.ratio}%
-                  </span>
-                </div>
-              </div>
-            </FuturisticCard>
+              {option.label}
+            </button>
           ))}
         </div>
 
-        {/* Data Table */}
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <LoadingSpinner size="large" color="primary" />
+        {/* Results Count */}
+        <div className={`mb-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          Showing {filteredData.length} {filteredData.length === 1 ? 'result' : 'results'}
+          {searchTerm && ` for "${searchTerm}"`}
+        </div>
+
+        {/* Risk Distribution */}
+        <div className="mb-6 p-4 rounded-lg bg-opacity-10 ${isDark ? 'bg-gray-800' : 'bg-gray-100'}">
+          <h3 className="text-lg font-semibold mb-3">Risk Distribution</h3>
+          <div className="flex gap-4">
+            {['High', 'Medium', 'Low'].map(level => {
+              const count = filteredData.filter(
+                item => calculateRiskScore(item).severity === level
+              ).length;
+              const percentage = (count / filteredData.length * 100) || 0;
+              
+              return (
+                <div 
+                  key={level}
+                  className={`flex-1 p-3 rounded-lg ${
+                    level === 'High' 
+                      ? 'bg-red-500/10' 
+                      : level === 'Medium'
+                      ? 'bg-yellow-500/10'
+                      : 'bg-green-500/10'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <FiAlertTriangle className={
+                      level === 'High' 
+                        ? 'text-red-500' 
+                        : level === 'Medium'
+                        ? 'text-yellow-500'
+                        : 'text-green-500'
+                    } />
+                    <span className="font-semibold">{level} Risk</span>
+                  </div>
+                  <div className="mt-2">
+                    <div className="text-2xl font-bold">{count}</div>
+                    <div className="text-sm opacity-70">
+                      {percentage.toFixed(1)}% of total
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ) : (
-          <FuturisticTable
-            headers={headers}
-            data={tableData}
-            isLoading={loading}
-            onRowClick={(row) => console.log('Clicked row:', row)}
-          />
-        )}
-      </FuturisticCard>
-    </motion.div>
+        </div>
+
+        {/* Data Grid */}
+        <div className="grid gap-6">
+          {filteredData.map((item, index) => (
+            <motion.div
+              key={item.contract_address}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+              className={`p-6 rounded-lg ${
+                isDark ? 'bg-gray-800' : 'bg-white'
+              } shadow-lg`}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Risk Score */}
+                <div>
+                  <div className={`flex items-center gap-2 mb-3 ${
+                    calculateRiskScore(item).severity === 'High'
+                      ? 'text-red-500'
+                      : calculateRiskScore(item).severity === 'Medium'
+                      ? 'text-yellow-500'
+                      : 'text-green-500'
+                  }`}>
+                    <FiAlertTriangle className="text-2xl" />
+                    <div>
+                      <h3 className="text-lg font-semibold">Risk Score</h3>
+                      <p className="text-sm">
+                        {calculateRiskScore(item).severity} Risk Level
+                      </p>
+                    </div>
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full ${
+                        calculateRiskScore(item).severity === 'High'
+                          ? 'bg-red-500'
+                          : calculateRiskScore(item).severity === 'Medium'
+                          ? 'bg-yellow-500'
+                          : 'bg-green-500'
+                      }`}
+                      style={{ 
+                        width: `${(calculateRiskScore(item).score / 150000) * 100}%`,
+                        transition: 'width 0.5s ease-in-out'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Basic Info */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Collection Info</h3>
+                  <p className="text-sm text-gray-500">Contract: {item.contract_address}</p>
+                  <p className="text-sm text-gray-500">Blockchain: {item.blockchain}</p>
+                </div>
+
+                {/* Wash Trade Volume */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Wash Trade Volume</h3>
+                  <p className="text-xl">${formatNumber(item.washtrade_volume)}</p>
+                  <div className={`text-sm ${getChangeColor(item.washtrade_volume_change)}`}>
+                    {getChangeIcon(item.washtrade_volume_change)}
+                    {formatNumber(item.washtrade_volume_change * 100)}% change
+                  </div>
+                </div>
+
+                {/* Suspect Sales */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Suspect Sales</h3>
+                  <p className="text-xl">{formatNumber(item.washtrade_suspect_sales)} / {formatNumber(item.washtrade_assets)}</p>
+                  <div className={`text-sm ${getChangeColor(item.washtrade_suspect_sales_change)}`}>
+                    {getChangeIcon(item.washtrade_suspect_sales_change)}
+                    {formatNumber(item.washtrade_suspect_sales_change * 100)}% change
+                  </div>
+                  <div className="mt-1 text-sm text-gray-500">
+                    {((item.washtrade_suspect_sales / item.washtrade_assets) * 100).toFixed(1)}% of total assets
+                  </div>
+                </div>
+              </div>
+
+              {/* Trend Data */}
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold mb-2">24 Hour Trend</h4>
+                <div className="grid grid-cols-24 gap-1 h-20">
+                  {JSON.parse(item.washtrade_assets_trend).map((value, i) => (
+                    <div
+                      key={i}
+                      className="bg-blue-500 rounded"
+                      style={{
+                        height: `${(value / Math.max(...JSON.parse(item.washtrade_assets_trend))) * 100}%`,
+                        opacity: 0.7
+                      }}
+                      title={`${item.block_dates[i]}: ${value} assets`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Summary and Suggestions */}
+              {(() => {
+                const { summary, suggestions, severity } = getSummaryAndSuggestions(item);
+                return (
+                  <div className="mt-6 border-t border-gray-700/20 pt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <h4 className="text-lg font-semibold">Analysis</h4>
+                      <span className={`px-2 py-1 rounded text-sm ${
+                        severity === 'High' 
+                          ? 'bg-red-500/10 text-red-500' 
+                          : severity === 'Medium'
+                          ? 'bg-yellow-500/10 text-yellow-500'
+                          : 'bg-green-500/10 text-green-500'
+                      }`}>
+                        {severity} Risk
+                      </span>
+                    </div>
+                    
+                    <p className={`text-sm mb-3 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {summary}
+                    </p>
+
+                    <div>
+                      <h5 className="text-sm font-semibold mb-2">Suggestions:</h5>
+                      <ul className={`text-sm space-y-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {suggestions.map((suggestion, index) => (
+                          <li key={index} className="flex items-start">
+                            <span className="mr-2">•</span>
+                            {suggestion}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                );
+              })()}
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 };
 

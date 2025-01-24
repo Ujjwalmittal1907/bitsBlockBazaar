@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
-import { FaChartLine, FaStore, FaImage, FaShieldAlt, FaArrowUp, FaArrowDown } from 'react-icons/fa';
+import { FaChartLine, FaStore, FaImage, FaShieldAlt, FaArrowUp, FaArrowDown, FaStar } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { NFTInsightsAPI } from '../api/nftInsightsEndpoints';
 import { FuturisticLoader } from './shared';
@@ -65,10 +65,10 @@ const Home = () => {
         }
       ] : [],
       links: [
-        { title: 'NFT Market Analytics Report', path: '/nftmarketanalyticsreport', description: 'Real-time NFT market trends and analysis' },
-        { title: 'NFT Valuation Scores Insights', path: '/nftscoresinsights', description: 'AI-powered valuation metrics for NFTs' },
-        { title: 'NFT Traders Insights', path: '/nfttradersinsights', description: 'In-depth analysis of NFT trading patterns' },
-        { title: 'NFT Wash Trade Insights', path: '/nftwashtradeinsights', description: 'Advanced wash trading detection system' }
+        { title: 'NFT Market Analytics Report', path: '/nftmarketanalyticsreport', description: 'Comprehensive market analysis', highlight: true },
+        { title: 'NFT Wash Trading Insights', path: '/nftwashtradeinsights', description: 'Wash trading pattern detection', highlight: true },
+        { title: 'NFT Scores Insights', path: '/nftscoresinsights', description: 'AI-powered NFT scoring metrics' },
+        { title: 'NFT Traders Insights', path: '/nfttradersinsights', description: 'Trader behavior analysis' }
       ]
     },
     {
@@ -91,10 +91,10 @@ const Home = () => {
         }
       ] : [],
       links: [
-        { title: 'NFT Marketplace Analytics', path: '/marketplaceanalytics', description: 'Real-time trading metrics and volume analysis' },
-        { title: 'Marketplace Traders', path: '/marketplacetraders', description: 'Leading traders and their performance metrics' },
-        { title: 'Marketplace Wash Traders', path: '/marketplacewashtraders', description: 'Identify suspicious trading patterns' },
-        { title: 'NFT Marketplace Overview', path: '/nftmarketplace', description: 'Detailed marketplace volume breakdown' }
+        { title: 'NFT Marketplaces', path: '/nftmarketplace', description: 'NFT Marketplaces' },
+        { title: 'NFT Marketplace Analytics', path: '/marketplaceanalytics', description: 'Real-time trading metrics and volume analysis', highlight: true },
+        { title: 'Marketplace Wash Trading Analysis', path: '/marketplacewashtraders', description: 'Identify suspicious trading patterns', highlight: true },
+        { title: 'Marketplace Traders Analysis', path: '/marketplacetraders', description: 'Leading traders and their performance metrics' }
       ]
     },
     {
@@ -117,12 +117,12 @@ const Home = () => {
         }
       ] : [],
       links: [
-        { title: 'Collection Analytics', path: '/collectionanalytics', description: 'Performance metrics and trend analysis' },
-        { title: 'Collection Scores', path: '/collectionscores', description: 'AI-based collection rating system' },
-        { title: 'Category Analysis', path: '/collectioncategories', description: 'Category-wise collection insights' },
-        { title: 'Metadata Analysis', path: '/collectionmetadata', description: 'Detailed attribute and rarity analysis' },
-        { title: 'Wash Trade Analysis', path: '/collectionwashtrade', description: 'Collection-specific wash trading detection' },
-        { title: 'Top Traders', path: '/collectiontraders', description: 'Leading traders within collections' }
+        { title: 'NFT Collection Metadata', path: '/collectionmetadata', description: 'NFT Collections' },
+        { title: 'Collection Analytics Overview', path: '/collectionanalytics', description: 'Performance metrics and trend analysis', highlight: true },
+        { title: 'Collection Wash Trade Analysis', path: '/collectionwashtrade', description: 'Collection-specific wash trading detection', highlight: true },
+        { title: 'Collection Traders Analysis', path: '/collectiontraders', description: 'Leading traders within collections' },
+        { title: 'Collection Score Analysis', path: '/collectionscores', description: 'AI-based collection rating system' },
+        { title: 'Collection Category Analysis', path: '/collectioncategories', description: 'Category-wise collection insights' }
       ]
     }
   ];
@@ -198,7 +198,7 @@ const Home = () => {
                             stat.change >= 0 ? 'text-green-500' : 'text-red-500'
                           }`}>
                             {stat.change >= 0 ? <FaArrowUp className="mr-1" /> : <FaArrowDown className="mr-1" />}
-                            {Math.abs(stat.change).toFixed(2)}%
+                            {Math.abs(stat.change * 100).toFixed(1)}%
                           </div>
                         )}
                       </div>
@@ -208,25 +208,40 @@ const Home = () => {
 
                 {/* Navigation Links */}
                 <div className="p-6 space-y-4">
-                  {panel.links.map((link, i) => (
-                    <motion.div
-                      key={i}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
+                  {panel.links.map((link, i) => {
+                    const isHighlighted = link.title.toLowerCase().includes('analytics') || 
+                                        link.title.toLowerCase().includes('wash trad');
+                    return (
                       <Link
+                        key={i}
                         to={link.path}
-                        className={`block p-4 rounded-lg ${
+                        className={`block p-4 rounded-lg transition-all duration-200 ${
                           isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'
-                        } transition-all duration-300`}
+                        }`}
                       >
-                        <h3 className="text-lg font-semibold mb-1">{link.title}</h3>
-                        <p className={`text-sm ${
-                          isDark ? 'text-gray-400' : 'text-gray-600'
-                        }`}>{link.description}</p>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="text-base font-semibold mb-1 flex items-center">
+                              {link.title}
+                              {isHighlighted && (
+                                <FaStar 
+                                  className={`ml-2 ${
+                                    isDark ? 'text-yellow-500' : 'text-yellow-500'
+                                  } animate-pulse`}
+                                  size={14}
+                                />
+                              )}
+                            </h3>
+                            <p className={`text-sm ${
+                              isDark ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              {link.description}
+                            </p>
+                          </div>
+                        </div>
                       </Link>
-                    </motion.div>
-                  ))}
+                    );
+                  })}
                 </div>
               </motion.div>
             ))}

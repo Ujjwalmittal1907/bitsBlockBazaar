@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { NFTInsightsAPI } from '../../api/nftInsightsEndpoints';
 import { useTheme } from '../../context/ThemeContext';
 import ModernLoader from '../ModernLoader';
 import BackButton from '../../components/BackButton';
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import Select from 'react-select';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -17,6 +16,7 @@ import {
   Legend,
   Filler
 } from 'chart.js';
+import { Line } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
@@ -35,7 +35,35 @@ const NFTTradersInsights = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [timePeriod, setTimePeriod] = useState('24h');
   const { isDark } = useTheme();
+
+  const timeOptions = [
+    { value: '24h', label: 'Last 24 Hours', description: 'Hourly trader activity from the past day' },
+    { value: '7d', label: 'Last 7 Days', description: 'Daily trader activity for the week' },
+    { value: '30d', label: 'Last 30 Days', description: 'Monthly trading patterns' },
+    { value: 'all', label: 'All Time', description: 'Complete historical data' }
+  ];
+
+  const CustomOption = ({ innerProps, label, description, isSelected }) => (
+    <div
+      {...innerProps}
+      className={`px-4 py-2 cursor-pointer transition-colors duration-200 ${
+        isSelected 
+          ? isDark 
+            ? 'bg-blue-500 text-white' 
+            : 'bg-blue-500 text-white'
+          : isDark
+            ? 'hover:bg-gray-700'
+            : 'hover:bg-blue-50'
+      }`}
+    >
+      <div className="font-medium">{label}</div>
+      <div className={`text-sm ${isSelected ? 'text-blue-100' : isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+        {description}
+      </div>
+    </div>
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,7 +71,23 @@ const NFTTradersInsights = () => {
         setLoading(true);
         setError(null);
         
-        const response = await NFTInsightsAPI.getTradersInsights();
+        const options = {
+          method: 'GET',
+          headers: {
+            accept: 'application/json',
+            'x-api-key': process.env.REACT_APP_X_API_KEY
+          }
+        };
+
+        const response = await fetch(
+          `https://api.unleashnfts.com/api/v2/nft/market-insights/traders?blockchain=full&time_range=${timePeriod}`,
+          options
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch data');
+        }
+
         const result = await response.json();
         
         if (result?.data?.[0]) {
@@ -60,7 +104,7 @@ const NFTTradersInsights = () => {
     };
 
     fetchData();
-  }, []);
+  }, [timePeriod]);
 
   const formatNumber = (value) => {
     if (!value) return '0';
@@ -73,36 +117,113 @@ const NFTTradersInsights = () => {
     return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
   };
 
+  const formatDate = (date) => {
+    const d = new Date(date);
+    if (timePeriod === '24h') {
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
+
   if (loading) {
     return (
-      <div className="container mx-auto p-4">
-        <BackButton />
-        <ModernLoader text="Loading Trader Insights..." />
+      <div className={`min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className="container mx-auto p-4">
+          <BackButton />
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <ModernLoader />
+            <div className={`mt-6 text-xl font-semibold ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+              Loading trader insights...
+            </div>
+            <div className={`mt-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              Analyzing trading patterns
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-4">
-        <BackButton />
-        <div className="text-center text-red-500 p-4">
-          {error}
+      <div className={`min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className="container mx-auto p-4">
+          <BackButton />
+          <div className="text-center text-red-500 p-4">
+            {error}
+          </div>
         </div>
       </div>
     );
   }
 
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          color: isDark ? '#e5e7eb' : '#374151',
+          font: {
+            size: 12,
+            weight: 500
+          }
+        }
+      },
+      tooltip: {
+        backgroundColor: isDark ? '#1f2937' : '#ffffff',
+        titleColor: isDark ? '#e5e7eb' : '#111827',
+        bodyColor: isDark ? '#e5e7eb' : '#374151',
+        borderColor: isDark ? '#374151' : '#e5e7eb',
+        borderWidth: 1,
+        padding: 12,
+        displayColors: true,
+        callbacks: {
+          label: (context) => {
+            const label = context.dataset.label || '';
+            const value = context.parsed.y;
+            return `${label}: ${formatNumber(value)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          color: isDark ? '#374151' : '#e5e7eb',
+          drawBorder: false,
+        },
+        ticks: {
+          color: isDark ? '#9ca3af' : '#4b5563',
+          maxRotation: 45,
+          minRotation: 45
+        }
+      },
+      y: {
+        grid: {
+          color: isDark ? '#374151' : '#e5e7eb',
+          drawBorder: false,
+        },
+        ticks: {
+          color: isDark ? '#9ca3af' : '#4b5563',
+          callback: (value) => formatNumber(value)
+        }
+      }
+    }
+  };
+
   const lineChartData = {
-    labels: data.block_dates.map(date => {
-      const d = new Date(date);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }),
+    labels: data.block_dates.map(formatDate),
     datasets: [
       {
         label: 'Total Traders',
         data: data.traders_trend,
-        borderColor: '#3B82F6',
+        borderColor: '#3b82f6',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         fill: true,
         tension: 0.4
@@ -110,7 +231,7 @@ const NFTTradersInsights = () => {
       {
         label: 'Buyers',
         data: data.traders_buyers_trend,
-        borderColor: '#10B981',
+        borderColor: '#10b981',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
         fill: true,
         tension: 0.4
@@ -118,7 +239,7 @@ const NFTTradersInsights = () => {
       {
         label: 'Sellers',
         data: data.traders_sellers_trend,
-        borderColor: '#F59E0B',
+        borderColor: '#f59e0b',
         backgroundColor: 'rgba(245, 158, 11, 0.1)',
         fill: true,
         tension: 0.4
@@ -126,149 +247,183 @@ const NFTTradersInsights = () => {
     ]
   };
 
-  const doughnutData = {
-    labels: ['Buyers', 'Sellers'],
-    datasets: [{
-      data: [data.traders_buyers, data.traders_sellers],
-      backgroundColor: [
-        'rgba(16, 185, 129, 0.8)',
-        'rgba(245, 158, 11, 0.8)'
-      ],
-      borderColor: [
-        'rgba(16, 185, 129, 1)',
-        'rgba(245, 158, 11, 1)'
-      ],
-      borderWidth: 1
-    }]
-  };
-
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-        labels: {
-          color: isDark ? '#E5E7EB' : '#1F2937'
-        }
-      },
-      tooltip: {
-        mode: 'index',
-        intersect: false,
-        backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
-        titleColor: isDark ? '#E5E7EB' : '#1F2937',
-        bodyColor: isDark ? '#E5E7EB' : '#1F2937',
-        borderColor: isDark ? '#374151' : '#E5E7EB',
-        borderWidth: 1
-      }
-    },
-    scales: {
-      x: {
-        grid: {
-          color: isDark ? '#374151' : '#E5E7EB'
-        },
-        ticks: {
-          color: isDark ? '#E5E7EB' : '#1F2937'
-        }
-      },
-      y: {
-        grid: {
-          color: isDark ? '#374151' : '#E5E7EB'
-        },
-        ticks: {
-          color: isDark ? '#E5E7EB' : '#1F2937'
-        }
-      }
-    }
-  };
-
-  const doughnutOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          color: isDark ? '#E5E7EB' : '#1F2937'
-        }
-      }
-    }
-  };
-
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
+    <div className={`min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="container mx-auto p-4">
         <BackButton />
         
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4">NFT Trader Insights</h1>
-          <p className="text-gray-500">
-            Analysis of NFT trading activity and participant behavior
-          </p>
-        </div>
+          <h1 className={`text-4xl font-bold mb-6 text-center ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            NFT Trader Insights
+          </h1>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
-            <h3 className="text-lg font-semibold mb-2">Total Traders</h3>
-            <p className="text-3xl font-bold text-blue-500">{formatNumber(data.traders)}</p>
-            <p className={`text-sm ${data.traders_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {getPercentageChange(data.traders_change)} change
-            </p>
+          <div className="mb-6">
+            <div className={`text-lg font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Time Period
+            </div>
+            <Select
+              options={timeOptions}
+              value={timeOptions.find(option => option.value === timePeriod)}
+              onChange={(selectedOption) => setTimePeriod(selectedOption.value)}
+              components={{ Option: CustomOption }}
+              className="w-full md:w-80"
+              classNamePrefix="select"
+              isSearchable={false}
+              theme={(theme) => ({
+                ...theme,
+                colors: {
+                  ...theme.colors,
+                  primary: '#3b82f6',
+                  primary75: '#60a5fa',
+                  primary50: '#93c5fd',
+                  primary25: '#dbeafe',
+                  neutral0: isDark ? '#1f2937' : '#ffffff',
+                  neutral80: isDark ? '#ffffff' : '#000000',
+                },
+              })}
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                  borderColor: isDark ? '#374151' : '#e5e7eb',
+                  '&:hover': {
+                    borderColor: isDark ? '#4b5563' : '#d1d5db',
+                  },
+                }),
+                menu: (base) => ({
+                  ...base,
+                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                  border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                }),
+                option: (base) => ({
+                  ...base,
+                  padding: 0,
+                }),
+              }}
+            />
           </div>
 
-          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
-            <h3 className="text-lg font-semibold mb-2">Active Buyers</h3>
-            <p className="text-3xl font-bold text-emerald-500">{formatNumber(data.traders_buyers)}</p>
-            <p className={`text-sm ${data.traders_buyers_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {getPercentageChange(data.traders_buyers_change)} change
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {/* Total Traders Card */}
+            <div className={`p-6 rounded-xl ${isDark ? 'bg-gray-800/50 backdrop-blur' : 'bg-white'} shadow-lg border ${isDark ? 'border-gray-700' : 'border-gray-100'}`}>
+              <h2 className={`text-xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Total Traders</h2>
+              <div className="flex flex-col items-center">
+                <div className={`text-4xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  {formatNumber(data.traders)}
+                </div>
+                <div className={`text-lg font-semibold ${data.traders_change >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {getPercentageChange(data.traders_change)}
+                </div>
+              </div>
+            </div>
+
+            {/* Buyers Card */}
+            <div className={`p-6 rounded-xl ${isDark ? 'bg-gray-800/50 backdrop-blur' : 'bg-white'} shadow-lg border ${isDark ? 'border-gray-700' : 'border-gray-100'}`}>
+              <h2 className={`text-xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Buyers</h2>
+              <div className="flex flex-col items-center">
+                <div className={`text-4xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  {formatNumber(data.traders_buyers)}
+                </div>
+                <div className={`text-lg font-semibold ${data.traders_buyers_change >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {getPercentageChange(data.traders_buyers_change)}
+                </div>
+              </div>
+            </div>
+
+            {/* Sellers Card */}
+            <div className={`p-6 rounded-xl ${isDark ? 'bg-gray-800/50 backdrop-blur' : 'bg-white'} shadow-lg border ${isDark ? 'border-gray-700' : 'border-gray-100'}`}>
+              <h2 className={`text-xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Sellers</h2>
+              <div className="flex flex-col items-center">
+                <div className={`text-4xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  {formatNumber(data.traders_sellers)}
+                </div>
+                <div className={`text-lg font-semibold ${data.traders_sellers_change >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {getPercentageChange(data.traders_sellers_change)}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
-            <h3 className="text-lg font-semibold mb-2">Active Sellers</h3>
-            <p className="text-3xl font-bold text-amber-500">{formatNumber(data.traders_sellers)}</p>
-            <p className={`text-sm ${data.traders_sellers_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {getPercentageChange(data.traders_sellers_change)} change
-            </p>
-          </div>
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'} lg:col-span-2`}>
-            <h2 className="text-xl font-bold mb-4">24-Hour Trading Activity</h2>
+          {/* Trend Chart */}
+          <div className={`p-6 rounded-xl ${isDark ? 'bg-gray-800/50 backdrop-blur' : 'bg-white'} shadow-lg border ${isDark ? 'border-gray-700' : 'border-gray-100'} mb-6`}>
+            <h2 className={`text-xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Trading Activity Trends</h2>
             <div className="h-[400px]">
               <Line data={lineChartData} options={chartOptions} />
             </div>
           </div>
 
-          <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
-            <h2 className="text-xl font-bold mb-4">Trader Distribution</h2>
-            <div className="h-[400px] flex items-center justify-center">
-              <Doughnut data={doughnutData} options={doughnutOptions} />
-            </div>
-          </div>
-        </div>
-
-        {/* Market Status */}
-        <div className={`mt-8 p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
-          <h2 className="text-xl font-bold mb-4">Market Status</h2>
-          <div className="grid grid-cols-3 gap-6">
-            <div>
-              <h3 className="text-gray-500 mb-1">Blockchain</h3>
-              <p className="text-lg font-semibold capitalize">{data.blockchain}</p>
-              <p className="text-sm text-gray-500">Network</p>
-            </div>
-            <div>
-              <h3 className="text-gray-500 mb-1">Chain ID</h3>
-              <p className="text-lg font-semibold">{data.chain_id}</p>
-              <p className="text-sm text-gray-500">Network identifier</p>
-            </div>
-            <div>
-              <h3 className="text-gray-500 mb-1">Last Updated</h3>
-              <p className="text-lg font-semibold">
-                {new Date(data.updated_at).toLocaleString()}
+          {/* Market Summary */}
+          <div className={`p-6 rounded-xl ${isDark ? 'bg-gray-800/50 backdrop-blur' : 'bg-white'} shadow-lg border ${isDark ? 'border-gray-700' : 'border-gray-100'}`}>
+            <h2 className={`text-xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Market Summary</h2>
+            <div className={`space-y-4 text-lg leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              {/* Overall Activity */}
+              <p>
+                The NFT market currently has <span className="font-medium">{formatNumber(data.traders)}</span> active traders, showing a 
+                <span className={`font-medium ${data.traders_change >= 0 ? ' text-emerald-500' : ' text-rose-500'}`}>
+                  {' '}{getPercentageChange(data.traders_change)}
+                </span> change in total trading activity.
               </p>
-              <p className="text-sm text-gray-500">Latest data timestamp</p>
+
+              {/* Buyer/Seller Ratio */}
+              <p>
+                Among these traders, there are <span className="font-medium">{formatNumber(data.traders_buyers)}</span> buyers 
+                (<span className={`font-medium ${data.traders_buyers_change >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {getPercentageChange(data.traders_buyers_change)}
+                </span>) and <span className="font-medium">{formatNumber(data.traders_sellers)}</span> sellers 
+                (<span className={`font-medium ${data.traders_sellers_change >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {getPercentageChange(data.traders_sellers_change)}
+                </span>), indicating a 
+                {data.traders_buyers > data.traders_sellers ? 
+                  ' buyer-dominated market with higher demand.' : 
+                  data.traders_buyers < data.traders_sellers ? 
+                    ' seller-dominated market with increased supply.' :
+                    ' balanced market between buyers and sellers.'}
+              </p>
+
+              {/* Peak Activity */}
+              {(() => {
+                const maxTraders = Math.max(...data.traders_trend);
+                const peakIndex = data.traders_trend.indexOf(maxTraders);
+                const peakTime = new Date(data.block_dates[peakIndex]);
+                return (
+                  <p>
+                    Peak trading activity was observed at{' '}
+                    <span className="font-medium">
+                      {peakTime.toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: true 
+                      })}
+                    </span>
+                    {timePeriod !== '24h' && 
+                      ` on ${peakTime.toLocaleDateString([], { 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })}`
+                    } with <span className="font-medium">{formatNumber(maxTraders)}</span> active traders.
+                  </p>
+                );
+              })()}
+
+              {/* Market Health */}
+              <p>
+                The current buyer-to-seller ratio is{' '}
+                <span className={`font-medium ${
+                  data.traders_buyers/data.traders_sellers > 1 ? 'text-emerald-500' : 
+                  data.traders_buyers/data.traders_sellers === 1 ? (isDark ? 'text-gray-300' : 'text-gray-600') :
+                  'text-rose-500'
+                }`}>
+                  {(data.traders_buyers/data.traders_sellers).toFixed(2)}
+                </span>, suggesting a{' '}
+                {data.traders_buyers/data.traders_sellers > 1.1 ? 'strong buying pressure' :
+                 data.traders_buyers/data.traders_sellers < 0.9 ? 'strong selling pressure' :
+                 'relatively balanced market'}.
+              </p>
+
+              {/* Last Updated */}
+              <p className="text-sm opacity-75">
+                Last updated: {new Date(data.updated_at).toLocaleString()}
+              </p>
             </div>
           </div>
         </div>

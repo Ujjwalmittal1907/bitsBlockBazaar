@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
-import { FaSun, FaMoon } from 'react-icons/fa';
+import { FaSun, FaMoon, FaStar } from 'react-icons/fa';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -33,34 +33,37 @@ const Navbar = () => {
     { path: '/', label: 'Home' },
     {
       path: '#',
-      label: 'NFT Marketplace',
-      subItems: [
-        { path: '/marketplaceanalytics', label: 'Trading Analytics' },
-        { path: '/marketplacetraders', label: 'Top Traders' },
-        { path: '/marketplacewashtraders', label: 'Wash Trade Detection' },
-        { path: '/nftmarketplace', label: 'Volume Analysis' }
-      ]
-    },
-    {
-      path: '#',
-      label: 'Collections',
-      subItems: [
-        { path: '/collectionanalytics', label: 'Analytics' },
-        { path: '/collectioncategories', label: 'Categories' },
-        { path: '/collectionmetadata', label: 'Metadata' },
-        { path: '/collectionscores', label: 'Scores' },
-        { path: '/collectionwashtrade', label: 'Wash Trade' },
-        { path: '/collectiontraders', label: 'Top Traders' }
-      ]
-    },
-    {
-      path: '#',
       label: 'NFT Insights',
+      gradient: 'from-blue-600 to-indigo-600',
       subItems: [
-        { path: '/nftmarketanalyticsreport', label: 'Market Analytics' },
-        { path: '/nfttradersinsights', label: 'Traders Insights' },
-        { path: '/nftwashtradeinsights', label: 'Wash Trade Insights' },
-        { path: '/nftscoresinsights', label: 'NFT Scores' }
+        { path: '/nftmarketanalyticsreport', label: 'NFT Market Analytics Report', highlight: true },
+        { path: '/nftwashtradeinsights', label: 'NFT Wash Trading Insights', highlight: true },
+        { path: '/nftscoresinsights', label: 'NFT Scores Insights' },
+        { path: '/nfttradersinsights', label: 'NFT Traders Insights' }
+      ]
+    },
+    {
+      path: '#',
+      label: 'NFT Marketplace',
+      gradient: 'from-indigo-600 to-purple-600',
+      subItems: [
+        { path: '/nftmarketplace', label: 'NFT Marketplaces' },
+        { path: '/marketplaceanalytics', label: 'NFT Marketplace Analytics', highlight: true },
+        { path: '/marketplacewashtraders', label: 'Marketplace Wash Trading Analysis', highlight: true },
+        { path: '/marketplacetraders', label: 'Marketplace Traders Analysis' }
+      ]
+    },
+    {
+      path: '#',
+      label: 'NFT Collections',
+      gradient: 'from-purple-600 to-pink-600',
+      subItems: [
+        { path: '/collectionmetadata', label: 'NFT Collection Metadata' },
+        { path: '/collectionanalytics', label: 'Collection Analytics Overview', highlight: true },
+        { path: '/collectionwashtrade', label: 'Collection Wash Trade Analysis', highlight: true },
+        { path: '/collectiontraders', label: 'Collection Traders Analysis' },
+        { path: '/collectionscores', label: 'Collection Score Analysis' },
+        { path: '/collectioncategories', label: 'Collection Category Analysis' }
       ]
     }
   ];
@@ -100,12 +103,14 @@ const Navbar = () => {
                         onClick={() => toggleSubmenu(index)}
                         className={`px-3 py-2 rounded-md text-sm font-medium
                           ${isDark ? 'hover:text-white' : 'hover:text-gray-900'}
-                          ${openSubmenu === index ? 'text-blue-500' : isDark ? 'text-gray-300' : 'text-gray-700'}`}
+                          ${openSubmenu === index 
+                            ? `bg-gradient-to-r ${item.gradient} text-white` 
+                            : isDark ? 'text-gray-300' : 'text-gray-700'}`}
                       >
                         {item.label}
                       </button>
                       {openSubmenu === index && (
-                        <div className={`absolute left-0 mt-2 w-48 rounded-md shadow-lg
+                        <div className={`absolute left-0 mt-2 w-64 rounded-md shadow-lg
                           ${isDark ? 'bg-gray-800' : 'bg-white'}
                           ring-1 ring-black ring-opacity-5`}>
                           <div className="py-1" role="menu" aria-orientation="vertical">
@@ -113,13 +118,25 @@ const Navbar = () => {
                               <Link
                                 key={subIndex}
                                 to={subItem.path}
-                                className={`block px-4 py-2 text-sm
-                                  ${isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}
-                                  ${isActive(subItem.path) ? 'bg-blue-500 text-white' : ''}`}
+                                className={`block px-4 py-2 text-sm transition-colors duration-200
+                                  ${isDark 
+                                    ? subItem.highlight
+                                      ? 'text-white bg-gray-700 hover:bg-gray-600' 
+                                      : 'text-gray-300 hover:bg-gray-700'
+                                    : subItem.highlight
+                                      ? 'text-gray-900 bg-gray-100 hover:bg-gray-200'
+                                      : 'text-gray-700 hover:bg-gray-100'
+                                  }
+                                  ${isActive(subItem.path) ? `bg-gradient-to-r ${item.gradient} text-white` : ''}`}
                                 role="menuitem"
                                 onClick={() => setOpenSubmenu(null)}
                               >
-                                {subItem.label}
+                                <div className="flex items-center">
+                                  {subItem.label}
+                                  {subItem.highlight && (
+                                    <FaStar className="ml-2 text-yellow-500 w-3 h-3" />
+                                  )}
+                                </div>
                               </Link>
                             ))}
                           </div>
@@ -190,7 +207,9 @@ const Navbar = () => {
                   <button
                     onClick={() => toggleSubmenu(index)}
                     className={`w-full text-left px-3 py-2 rounded-md text-base font-medium
-                      ${isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-900 hover:bg-gray-100'}`}
+                      ${openSubmenu === index 
+                        ? `bg-gradient-to-r ${item.gradient} text-white`
+                        : isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-900 hover:bg-gray-100'}`}
                   >
                     {item.label}
                   </button>
@@ -200,18 +219,27 @@ const Navbar = () => {
                         <Link
                           key={subIndex}
                           to={subItem.path}
-                          className={`block px-3 py-2 rounded-md text-sm font-medium
-                            ${isActive(subItem.path)
-                              ? 'bg-blue-500 text-white'
-                              : isDark
-                                ? 'text-gray-300 hover:bg-gray-700'
-                                : 'text-gray-700 hover:bg-gray-100'}`}
+                          className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200
+                            ${isDark 
+                              ? subItem.highlight
+                                ? 'text-white bg-gray-700 hover:bg-gray-600' 
+                                : 'text-gray-300 hover:bg-gray-700'
+                              : subItem.highlight
+                                ? 'text-gray-900 bg-gray-100 hover:bg-gray-200'
+                                : 'text-gray-700 hover:bg-gray-100'
+                            }
+                            ${isActive(subItem.path) ? `bg-gradient-to-r ${item.gradient} text-white` : ''}`}
                           onClick={() => {
                             setIsOpen(false);
                             setOpenSubmenu(null);
                           }}
                         >
-                          {subItem.label}
+                          <div className="flex items-center">
+                            {subItem.label}
+                            {subItem.highlight && (
+                              <FaStar className="ml-2 text-yellow-500 w-3 h-3" />
+                            )}
+                          </div>
                         </Link>
                       ))}
                     </div>
