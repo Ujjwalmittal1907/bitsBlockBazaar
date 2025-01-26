@@ -5,6 +5,7 @@
   "dependencies": {
     "antd": "^5.23.2",
     "assert": "^2.1.0",
+    "axios": "^1.7.9",
     "browserify-zlib": "^0.2.0",
     "buffer": "^6.0.3",
     "chart.js": "^4.4.7",
