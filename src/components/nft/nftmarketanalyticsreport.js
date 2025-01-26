@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ModernLoader from '../ModernLoader';
-import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Select from 'react-select';
 
 const NFTMarketAnalyticsReport = () => {
@@ -19,6 +19,12 @@ const NFTMarketAnalyticsReport = () => {
     { value: '30d', label: 'Last 30 Days', description: 'Monthly market trends' },
     { value: '90d', label: 'Last 90 Days', description: 'Quarterly market view' },
     { value: 'all', label: 'All Time', description: 'Complete market history' }
+  ];
+
+  const metricOptions = [
+    { value: 'volume', label: 'Volume' },
+    { value: 'sales', label: 'Sales' },
+    { value: 'transactions', label: 'Transactions' }
   ];
 
   const getLoadingMessage = () => {
@@ -98,42 +104,382 @@ const NFTMarketAnalyticsReport = () => {
     })
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const options = {
-          method: 'GET',
-          headers: {
-            accept: 'application/json',
-            'x-api-key': process.env.REACT_APP_X_API_KEY
-          }
-        };
+  const handleRefresh = () => {
+    setLoading(true);
+    fetchData();
+  };
 
-        const response = await fetch(
-          `https://api.unleashnfts.com/api/v2/nft/market-insights/analytics?time_range=${timeRange}`,
-          options
-        );
-        const result = await response.json();
-        if (result?.data?.[0]) {
-          setData(result.data[0]);
-        } else {
-          setError('Invalid data format received');
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const options = {
+        method: 'GET',
+        headers: {
+          accept: 'application/json',
+          'x-api-key': process.env.REACT_APP_X_API_KEY
         }
-      } catch (err) {
-        console.error(err);
-        setError('Failed to fetch market analytics');
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
+      const response = await fetch(
+        `https://api.unleashnfts.com/api/v2/nft/market-insights/analytics?time_range=${timeRange}`,
+        options
+      );
+      const result = await response.json();
+      if (result?.data?.[0]) {
+        setData(result.data[0]);
+      } else {
+        setError('Invalid data format received');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch market analytics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [timeRange]);
 
   const getTimeRangeLabel = () => {
     const option = timeRangeOptions.find(opt => opt.value === timeRange);
     return option ? option.label : 'Last 24 Hours';
+  };
+
+  const formatAxisDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    
+    switch (timeRange) {
+      case '15m':
+      case '30m':
+      case '24h':
+        return date.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'UTC'
+        });
+      case '7d':
+        return date.toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          timeZone: 'UTC'
+        });
+      case '30d':
+      case '90d':
+        return date.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          timeZone: 'UTC'
+        });
+      case 'all':
+        return date.toLocaleDateString('en-US', {
+          month: 'short',
+          year: 'numeric',
+          timeZone: 'UTC'
+        });
+      default:
+        return date.toLocaleDateString();
+    }
+  };
+
+  const getMetricData = () => {
+    if (!data) return null;
+    
+    const metrics = {
+      volume: {
+        trend: data.volume_trend || [],
+        label: 'Volume',
+        color: '#3B82F6',
+        current: data.volume,
+        change: data.volume_change,
+        isPrice: true,
+        description: 'Total trading volume in USD'
+      },
+      sales: {
+        trend: data.sales_trend || [],
+        label: 'Sales',
+        color: '#10B981',
+        current: data.sales,
+        change: data.sales_change,
+        isPrice: false,
+        description: 'Number of NFT sales'
+      },
+      transactions: {
+        trend: data.transactions_trend || [],
+        label: 'Transactions',
+        color: '#8B5CF6',
+        current: data.transactions,
+        change: data.transactions_change,
+        isPrice: false,
+        description: 'Total blockchain transactions'
+      }
+    };
+    return metrics[selectedMetric];
+  };
+
+  const getChartData = () => {
+    if (!data || !metricData) return [];
+
+    const trend = metricData.trend;
+    const dates = data.block_dates;
+    
+    if (!trend || !dates || trend.length !== dates.length) return [];
+
+    return trend.map((value, index) => ({
+      time: formatAxisDate(dates[index]),
+      value: value || 0,
+      date: dates[index] // Keep original date for tooltip
+    })).reverse();
+  };
+
+  const metricData = getMetricData();
+  const chartData = getChartData();
+
+  const formatNumber = (value, isPrice = false) => {
+    if (!value) return '0';
+    value = parseFloat(value);
+    if (isNaN(value)) return '0';
+    
+    if (isPrice) {
+      if (value >= 1000000) {
+        return `$${(value / 1000000).toFixed(2)}M`;
+      } else if (value >= 1000) {
+        return `$${(value / 1000).toFixed(2)}K`;
+      }
+      return `$${value.toFixed(2)}`;
+    }
+    
+    return value.toLocaleString();
+  };
+
+  const getPercentageChange = (value) => {
+    if (!value) return '0%';
+    const percentage = value * 100;
+    return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
+  };
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-[#1E293B] p-4 rounded-lg border border-gray-700 shadow-lg">
+          <p className="text-gray-400 text-sm mb-1">
+            {new Date(data.date).toLocaleString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+              timeZone: 'UTC'
+            })}
+          </p>
+          <div className="flex items-baseline gap-2">
+            <span className="font-semibold" style={{ color: metricData?.color }}>
+              {formatNumber(data.value, metricData?.isPrice)}
+            </span>
+            {metricData?.label && (
+              <span className="text-sm text-gray-400">{metricData.label}</span>
+            )}
+          </div>
+          {metricData?.description && (
+            <p className="text-xs text-gray-500 mt-1">{metricData.description}</p>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const getXAxisConfig = () => {
+    const dataLength = chartData.length;
+    let interval = 0;
+
+    switch (timeRange) {
+      case '15m':
+      case '30m':
+        interval = Math.ceil(dataLength / 15);
+        break;
+      case '24h':
+        interval = Math.ceil(dataLength / 24); 
+        break;
+      case '7d':
+        interval = Math.ceil(dataLength / 14); 
+        break;
+      case '30d':
+        interval = Math.ceil(dataLength / 30); 
+        break;
+      case '90d':
+        interval = Math.ceil(dataLength / 30);
+        break;
+      case 'all':
+        interval = Math.ceil(dataLength / 24);
+        break;
+      default:
+        interval = Math.ceil(dataLength / 15);
+    }
+
+    return {
+      stroke: '#64748B',
+      tick: { 
+        fill: '#94A3B8',
+        fontSize: 11
+      },
+      tickLine: { stroke: '#64748B' },
+      dataKey: "time",
+      angle: -45,
+      textAnchor: "end",
+      height: 60,
+      interval,
+      tickMargin: 25,
+      minTickGap: 15,
+      scale: 'point',
+      padding: { left: 10, right: 10 }
+    };
+  };
+
+  const renderChart = () => {
+    const commonProps = {
+      data: chartData,
+      margin: { top: 20, right: 30, left: 10, bottom: 60 }
+    };
+
+    const commonAxisProps = {
+      stroke: '#64748B',
+      tick: { 
+        fill: '#94A3B8',
+        fontSize: 11
+      },
+      tickLine: { stroke: '#64748B' }
+    };
+
+    const xAxisProps = getXAxisConfig();
+
+    const yAxisProps = {
+      ...commonAxisProps,
+      tickFormatter: (value) => formatNumber(value, metricData?.isPrice),
+      width: 80,
+      padding: { top: 20, bottom: 20 },
+      grid: {
+        stroke: 'rgba(226, 232, 240, 0.1)',
+        strokeDasharray: '3 3'
+      }
+    };
+
+    switch (chartType) {
+      case 'area':
+        return (
+          <div className="h-[600px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart {...commonProps}>
+                <defs>
+                  <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={metricData?.color} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={metricData?.color} stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="rgba(226, 232, 240, 0.1)" strokeDasharray="3 3" vertical={false} />
+                <XAxis {...xAxisProps} />
+                <YAxis {...yAxisProps} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke={metricData?.color}
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorGradient)"
+                  animationDuration={300}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        );
+
+      case 'line':
+        return (
+          <div className="h-[600px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart {...commonProps}>
+                <CartesianGrid stroke="rgba(226, 232, 240, 0.1)" strokeDasharray="3 3" vertical={false} />
+                <XAxis {...xAxisProps} />
+                <YAxis {...yAxisProps} />
+                <Tooltip content={<CustomTooltip />} />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke={metricData?.color}
+                  strokeWidth={2}
+                  dot={{ fill: metricData?.color, r: 1 }}
+                  activeDot={{ r: 6 }}
+                  animationDuration={300}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        );
+
+      case 'bar':
+        return (
+          <div className="h-[600px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart {...commonProps}>
+                <CartesianGrid stroke="rgba(226, 232, 240, 0.1)" strokeDasharray="3 3" vertical={false} />
+                <XAxis {...xAxisProps} />
+                <YAxis {...yAxisProps} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar 
+                  dataKey="value" 
+                  fill={metricData?.color}
+                  animationDuration={300}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        );
+    }
+  };
+
+  const getSummaryInsights = () => {
+    if (!data) return [];
+
+    const insights = [];
+    
+    // Volume insights
+    const volumeChange = data.volume_change;
+    const volumeChangeStr = getPercentageChange(volumeChange);
+    if (volumeChangeStr) {
+      insights.push({
+        type: volumeChange >= 0 ? 'success' : 'warning',
+        text: `Trading volume has ${volumeChange >= 0 ? 'increased' : 'decreased'} by ${volumeChangeStr.replace('+', '')} ${timeRange === '24h' ? 'in the last 24 hours' : `over the selected period`}`
+      });
+    }
+
+    // Sales insights
+    const salesChange = data.sales_change;
+    const salesChangeStr = getPercentageChange(salesChange);
+    if (salesChangeStr) {
+      insights.push({
+        type: salesChange >= 0 ? 'success' : 'warning',
+        text: `NFT sales have ${salesChange >= 0 ? 'increased' : 'decreased'} by ${salesChangeStr.replace('+', '')}`
+      });
+    }
+
+    // Transactions insights
+    const txChange = data.transactions_change;
+    const txChangeStr = getPercentageChange(txChange);
+    if (txChangeStr) {
+      insights.push({
+        type: txChange >= 0 ? 'success' : 'warning',
+        text: `Transaction volume has ${txChange >= 0 ? 'increased' : 'decreased'} by ${txChangeStr.replace('+', '')}`
+      });
+    }
+
+    return insights;
   };
 
   if (loading) {
@@ -167,365 +513,221 @@ const NFTMarketAnalyticsReport = () => {
     );
   }
 
-  const formatNumber = (value, isPrice = false) => {
-    if (!value) return '0';
-    value = parseFloat(value);
-    if (isNaN(value)) return '0';
-    
-    if (isPrice) {
-      if (value >= 1000000) {
-        return `$${(value / 1000000).toFixed(2)}M`;
-      } else if (value >= 1000) {
-        return `$${(value / 1000).toFixed(2)}K`;
-      }
-      return `$${value.toFixed(2)}`;
-    }
-    
-    return value.toLocaleString();
-  };
-
-  const getPercentageChange = (value) => {
-    if (!value) return '0%';
-    const percentage = value * 100;
-    return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
-  };
-
-  const getMetricData = () => {
-    if (!data) return null;
-    
-    const metrics = {
-      volume: {
-        trend: data.volume_trend || [],
-        label: 'Volume',
-        color: '#3B82F6',
-        current: data.volume,
-        change: data.volume_change,
-        isPrice: true
-      },
-      sales: {
-        trend: data.sales_trend || [],
-        label: 'Sales',
-        color: '#10B981',
-        current: data.sales,
-        change: data.sales_change,
-        isPrice: false
-      },
-      transactions: {
-        trend: data.transactions_trend || [],
-        label: 'Transactions',
-        color: '#8B5CF6',
-        current: data.transactions,
-        change: data.transactions_change,
-        isPrice: false
-      },
-      transfers: {
-        trend: data.transfers_trend || [],
-        label: 'Transfers',
-        color: '#F59E0B',
-        current: data.transfers,
-        change: data.transfers_change,
-        isPrice: false
-      }
-    };
-    return metrics[selectedMetric];
-  };
-
-  const metricData = getMetricData();
-  const chartData = metricData?.trend?.map((value, index) => ({
-    time: data?.block_dates?.[index] 
-      ? new Date(data.block_dates[index]).toLocaleTimeString() 
-      : `Point ${index + 1}`,
-    value: value || 0
-  })) || [];
-
-  // Custom tooltip for the chart
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-[#1E293B] p-3 rounded-lg border border-gray-700">
-          <p className="text-gray-400">{label}</p>
-          <p className="font-semibold" style={{ color: metricData?.color }}>
-            {formatNumber(payload[0].value, metricData?.isPrice)}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const renderChart = () => {
-    const commonProps = {
-      data: chartData,
-      margin: { top: 10, right: 30, left: 0, bottom: 0 }
-    };
-
-    const commonAxisProps = {
-      stroke: '#64748B',
-      tick: { fill: '#64748B' },
-      tickLine: { stroke: '#64748B' }
-    };
-
-    switch (chartType) {
-      case 'area':
-        return (
-          <AreaChart {...commonProps}>
-            <defs>
-              <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={metricData?.color} stopOpacity={0.3}/>
-                <stop offset="95%" stopColor={metricData?.color} stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="time" {...commonAxisProps} />
-            <YAxis 
-              {...commonAxisProps}
-              tickFormatter={(value) => formatNumber(value, metricData?.isPrice)}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke={metricData?.color}
-              fillOpacity={1}
-              fill="url(#colorGradient)"
-            />
-          </AreaChart>
-        );
-
-      case 'line':
-        return (
-          <LineChart {...commonProps}>
-            <XAxis dataKey="time" {...commonAxisProps} />
-            <YAxis 
-              {...commonAxisProps}
-              tickFormatter={(value) => formatNumber(value, metricData?.isPrice)}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke={metricData?.color}
-              strokeWidth={2}
-              dot={{ fill: metricData?.color }}
-              activeDot={{ r: 6 }}
-            />
-          </LineChart>
-        );
-
-      case 'bar':
-        return (
-          <BarChart {...commonProps}>
-            <XAxis dataKey="time" {...commonAxisProps} />
-            <YAxis 
-              {...commonAxisProps}
-              tickFormatter={(value) => formatNumber(value, metricData?.isPrice)}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="value" fill={metricData?.color} />
-          </BarChart>
-        );
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#0F172A] text-white p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">NFT Analytics</h1>
-          <div className="flex items-center space-x-4">
-            <button className="bg-[#1E293B] px-4 py-2 rounded-lg text-sm hover:bg-[#2D3748] transition-colors">
-              Refresh
-            </button>
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Summary Insights */}
+        <div className="bg-[#1E293B] rounded-lg p-6 shadow-lg">
+          <h3 className="text-lg font-semibold mb-4">Market Summary</h3>
+          <div className="space-y-3">
+            {getSummaryInsights().map((insight, index) => (
+              <div
+                key={index}
+                className={`flex items-start space-x-2 text-sm ${
+                  insight.type === 'success' ? 'text-green-400' :
+                  insight.type === 'warning' ? 'text-amber-400' :
+                  'text-blue-400'
+                }`}
+              >
+                <span className="mt-1">
+                  {insight.type === 'success' ? '↗' :
+                   insight.type === 'warning' ? '↘' : 'ℹ'}
+                </span>
+                <span>{insight.text}</span>
+              </div>
+            ))}
           </div>
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">NFT Analytics</h1>
+          <button
+            onClick={handleRefresh}
+            disabled={loading}
+            className={`p-2 rounded-lg transition-all duration-200 ${
+              loading 
+                ? 'bg-gray-600 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+          >
+            <svg
+              className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </button>
         </div>
 
         {/* Main Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Trading Volume */}
-          <div className="bg-[#1E293B] rounded-lg p-6">
-            <h3 className="text-gray-400 mb-2">Trading Volume</h3>
-            <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-bold text-blue-500">
-                {formatNumber(data.volume, true)}
-              </span>
-              <span className={`text-sm ${data.volume_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {getPercentageChange(data.volume_change)} change
-              </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-[#1E293B] p-4 rounded-lg">
+            <div className="text-sm text-gray-400 mb-1">Volume</div>
+            <div className="text-xl font-semibold">
+              {formatNumber(data?.volume, true)}
+            </div>
+            <div className={`text-sm ${data?.volume_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {getPercentageChange(data?.volume_change)}
             </div>
           </div>
-
-          {/* Total Sales */}
-          <div className="bg-[#1E293B] rounded-lg p-6">
-            <h3 className="text-gray-400 mb-2">Total Sales</h3>
-            <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-bold text-green-500">
-                {formatNumber(data.sales)}
-              </span>
-              <span className={`text-sm ${data.sales_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {getPercentageChange(data.sales_change)} change
-              </span>
+          <div className="bg-[#1E293B] p-4 rounded-lg">
+            <div className="text-sm text-gray-400 mb-1">Sales</div>
+            <div className="text-xl font-semibold">
+              {formatNumber(data?.sales)}
+            </div>
+            <div className={`text-sm ${data?.sales_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {getPercentageChange(data?.sales_change)}
             </div>
           </div>
-
-          {/* Transactions */}
-          <div className="bg-[#1E293B] rounded-lg p-6">
-            <h3 className="text-gray-400 mb-2">Transactions</h3>
-            <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-bold text-purple-500">
-                {formatNumber(data.transactions)}
-              </span>
-              <span className={`text-sm ${data.transactions_change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {getPercentageChange(data.transactions_change)} change
-              </span>
+          <div className="bg-[#1E293B] p-4 rounded-lg">
+            <div className="text-sm text-gray-400 mb-1">Transactions</div>
+            <div className="text-xl font-semibold">
+              {formatNumber(data?.transactions)}
+            </div>
+            <div className={`text-sm ${data?.transactions_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {getPercentageChange(data?.transactions_change)}
+            </div>
+          </div>
+          <div className="bg-[#1E293B] p-4 rounded-lg">
+            <div className="text-sm text-gray-400 mb-1">Transfers</div>
+            <div className="text-xl font-semibold">
+              {formatNumber(data?.transfers)}
+            </div>
+            <div className={`text-sm ${data?.transfers_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {getPercentageChange(data?.transfers_change)}
             </div>
           </div>
         </div>
 
-        {/* Chart Controls and Chart */}
-        <div className="bg-[#1E293B] rounded-lg p-6">
-          <div className="flex flex-wrap gap-4 mb-6">
+        {/* Chart Controls */}
+        <div className="bg-[#1E293B] rounded-lg p-6 shadow-lg">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0 md:space-x-4 mb-6">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setChartType('area')}
+                  className={`p-2 rounded ${
+                    chartType === 'area'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  Area
+                </button>
+                <button
+                  onClick={() => setChartType('line')}
+                  className={`p-2 rounded ${
+                    chartType === 'line'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  Line
+                </button>
+                <button
+                  onClick={() => setChartType('bar')}
+                  className={`p-2 rounded ${
+                    chartType === 'bar'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  Bar
+                </button>
+              </div>
+
+              <Select
+                className="min-w-[200px] z-10"
+                options={metricOptions}
+                value={{ 
+                  value: selectedMetric, 
+                  label: selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1).replace('_', ' ') 
+                }}
+                onChange={(option) => setSelectedMetric(option.value)}
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    background: '#1E293B',
+                    borderColor: '#374151',
+                    '&:hover': {
+                      borderColor: '#4B5563'
+                    }
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    background: '#1E293B',
+                    border: '1px solid #374151'
+                  }),
+                  option: (base, { isFocused, isSelected }) => ({
+                    ...base,
+                    backgroundColor: isSelected
+                      ? '#3B82F6'
+                      : isFocused
+                      ? '#2563EB'
+                      : '#1E293B',
+                    color: 'white',
+                    ':active': {
+                      backgroundColor: '#2563EB'
+                    }
+                  }),
+                  singleValue: (base) => ({
+                    ...base,
+                    color: 'white'
+                  })
+                }}
+              />
+            </div>
+
             <Select
               className="min-w-[200px] z-10"
               options={timeRangeOptions}
-              value={timeRangeOptions.find(option => option.value === timeRange)}
-              onChange={(selected) => setTimeRange(selected.value)}
-              placeholder={loading ? "Loading..." : "Select time range..."}
-              isDisabled={loading}
-              components={{ 
-                Option: ({ innerProps, label, data, isSelected }) => (
-                  <CustomTimeRangeOption 
-                    innerProps={innerProps}
-                    label={data.label}
-                    description={data.description}
-                    isSelected={isSelected}
-                  />
-                )
+              value={timeRangeOptions.find((option) => option.value === timeRange)}
+              onChange={(option) => setTimeRange(option.value)}
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  background: '#1E293B',
+                  borderColor: '#374151',
+                  '&:hover': {
+                    borderColor: '#4B5563'
+                  }
+                }),
+                menu: (base) => ({
+                  ...base,
+                  background: '#1E293B',
+                  border: '1px solid #374151'
+                }),
+                option: (base, { isFocused, isSelected }) => ({
+                  ...base,
+                  backgroundColor: isSelected
+                    ? '#3B82F6'
+                    : isFocused
+                    ? '#2563EB'
+                    : '#1E293B',
+                  color: 'white',
+                  ':active': {
+                    backgroundColor: '#2563EB'
+                  }
+                }),
+                singleValue: (base) => ({
+                  ...base,
+                  color: 'white'
+                })
               }}
-              styles={customSelectStyles}
             />
-
-            <Select
-              className="min-w-[200px] z-10"
-              options={[
-                { value: 'volume', label: 'Volume', description: 'Trading volume in ETH' },
-                { value: 'sales', label: 'Sales', description: 'Number of NFT sales' },
-                { value: 'average_price', label: 'Average Price', description: 'Average sale price' },
-                { value: 'floor_price', label: 'Floor Price', description: 'Minimum listing price' }
-              ]}
-              value={{ 
-                value: selectedMetric, 
-                label: selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1).replace('_', ' ') 
-              }}
-              onChange={(selected) => setSelectedMetric(selected.value)}
-              placeholder={loading ? "Loading..." : "Select metric..."}
-              isDisabled={loading}
-              components={{ 
-                Option: ({ innerProps, label, data, isSelected }) => (
-                  <CustomTimeRangeOption 
-                    innerProps={innerProps}
-                    label={data.label}
-                    description={data.description}
-                    isSelected={isSelected}
-                  />
-                )
-              }}
-              styles={customSelectStyles}
-            />
-
-            <Select
-              className="min-w-[200px] z-10"
-              options={[
-                { value: 'area', label: 'Area Chart', description: 'Visualize trends with filled areas' },
-                { value: 'line', label: 'Line Chart', description: 'Clear view of trend lines' },
-                { value: 'bar', label: 'Bar Chart', description: 'Compare values with bars' }
-              ]}
-              value={{ 
-                value: chartType,
-                label: chartType.charAt(0).toUpperCase() + chartType.slice(1) + ' Chart'
-              }}
-              onChange={(selected) => setChartType(selected.value)}
-              placeholder={loading ? "Loading..." : "Select chart type..."}
-              isDisabled={loading}
-              components={{ 
-                Option: ({ innerProps, label, data, isSelected }) => (
-                  <CustomTimeRangeOption 
-                    innerProps={innerProps}
-                    label={data.label}
-                    description={data.description}
-                    isSelected={isSelected}
-                  />
-                )
-              }}
-              styles={customSelectStyles}
-            />
-          </div>
-
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">{getTimeRangeLabel()} {metricData?.label} Trend</h2>
-            <div className="bg-[#2D3748] px-3 py-1 rounded-lg">
-              <p className="text-sm">Current: {formatNumber(metricData?.current, metricData?.isPrice)}</p>
-              <p className={`text-xs ${metricData?.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {getPercentageChange(metricData?.change)}
-              </p>
-            </div>
           </div>
           
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              {renderChart()}
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Market Status */}
-        <div className="bg-[#1E293B] rounded-lg p-6">
-          <h2 className="text-xl font-bold mb-4">Market Status</h2>
-          <div className="grid grid-cols-3 gap-6">
-            <div>
-              <h3 className="text-gray-400 mb-1">Blockchain</h3>
-              <p className="text-lg font-semibold capitalize">{data.blockchain}</p>
-              <p className="text-sm text-gray-500">Network</p>
-            </div>
-            <div>
-              <h3 className="text-gray-400 mb-1">Chain ID</h3>
-              <p className="text-lg font-semibold">{data.chain_id}</p>
-              <p className="text-sm text-gray-500">Network identifier</p>
-            </div>
-            <div>
-              <h3 className="text-gray-400 mb-1">Last Updated</h3>
-              <p className="text-lg font-semibold">
-                {new Date(data.updated_at).toLocaleString('en-US', {
-                  month: 'numeric',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true
-                })}
-              </p>
-              <p className="text-sm text-gray-500">Latest data timestamp</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Market Metrics */}
-        <div className="bg-[#1E293B] rounded-lg p-6">
-          <h2 className="text-xl font-bold mb-4">Market Metrics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-gray-400 mb-2">Average Price per Sale</h3>
-              <p className="text-2xl font-bold">
-                {formatNumber(data.volume / data.sales, true)}
-              </p>
-              <p className="text-sm text-gray-500">trading volume / total sales</p>
-            </div>
-            <div>
-              <h3 className="text-gray-400 mb-2">Transfer Rate</h3>
-              <p className="text-2xl font-bold">
-                {((data.transfers / data.transactions) * 100).toFixed(2)}%
-              </p>
-              <p className="text-sm text-gray-500">transfers per transaction</p>
-            </div>
+          {/* Chart Container */}
+          <div className="h-[600px] w-full bg-[#1E293B] rounded-lg overflow-hidden">
+            {renderChart()}
           </div>
         </div>
       </div>

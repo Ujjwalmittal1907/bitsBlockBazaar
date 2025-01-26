@@ -378,8 +378,20 @@ const NftMarketplaceAnalytics = () => {
         </FuturisticCard>
       </div>
 
+      {/* Performance Chart */}
+      <FuturisticCard>
+        <div className="p-4">
+          <h3 className="text-lg font-semibold mb-2">Performance Metrics</h3>
+          <p className="text-sm text-gray-500 mb-4">{getTimeRangeLabel()}</p>
+          <div className="h-[400px]">
+            {graphType === 'bar' && <Bar data={getChartData()} />}
+            {graphType === 'line' && <Line data={getChartData()} />}
+          </div>
+        </div>
+      </FuturisticCard>
+
       {/* Market Share Distribution */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 mb-6">
         <FuturisticCard>
           <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">Market Share Distribution</h3>
@@ -404,18 +416,6 @@ const NftMarketplaceAnalytics = () => {
           </div>
         </FuturisticCard>
       </div>
-
-      {/* Performance Chart */}
-      <FuturisticCard>
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-2">Performance Metrics</h3>
-          <p className="text-sm text-gray-500 mb-4">{getTimeRangeLabel()}</p>
-          <div className="h-[400px]">
-            {graphType === 'bar' && <Bar data={getChartData()} />}
-            {graphType === 'line' && <Line data={getChartData()} />}
-          </div>
-        </div>
-      </FuturisticCard>
 
       {/* Marketplace Details */}
       <div className="mt-6">
