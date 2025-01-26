@@ -128,6 +128,77 @@ const fetchData = async (timeRange = '24h') => {
   // Process data...
 };
 ```
+
+### 🌐 Supported Blockchains
+```javascript
+const BLOCKCHAINS = {
+  ETHEREUM: 'ethereum',    // Ethereum Mainnet
+  POLYGON: 'polygon',      // Polygon Network
+  SOLANA: 'solana',       // Solana
+  BINANCE: 'binance',     // BNB Chain
+  AVALANCHE: 'avalanche', // Avalanche
+  ALL: 'all'             // Cross-chain analytics
+};
+
+// Example usage in API calls
+const fetchMarketData = async (blockchain = BLOCKCHAINS.ETHEREUM) => {
+  const response = await fetch(
+    `${BASE_URL}/market/analytics?blockchain=${blockchain}`,
+    options
+  );
+  return response.json();
+};
+```
+
+Each API endpoint supports filtering by blockchain, enabling:
+- Cross-chain market analysis
+- Blockchain-specific metrics
+- Network comparison analytics
+- Chain-level trading patterns
+- Multi-chain holder analysis
+
+### 🔌 API Integration Examples
+
+```javascript
+// Example: Fetch multi-chain marketplace data
+const fetchMarketplaceData = async () => {
+  const options = {
+    method: 'GET',
+    headers: { 
+      accept: 'application/json',
+      'x-api-key': process.env.REACT_APP_X_API_KEY 
+    }
+  };
+
+  // Fetch data for each supported blockchain
+  const [ethereumData, polygonData, solanaData] = await Promise.all([
+    fetch(`${BASE_URL}/marketplace/analytics?blockchain=${BLOCKCHAINS.ETHEREUM}`, options),
+    fetch(`${BASE_URL}/marketplace/analytics?blockchain=${BLOCKCHAINS.POLYGON}`, options),
+    fetch(`${BASE_URL}/marketplace/analytics?blockchain=${BLOCKCHAINS.SOLANA}`, options)
+  ]);
+
+  // Process and combine blockchain data
+  return {
+    ethereum: await ethereumData.json(),
+    polygon: await polygonData.json(),
+    solana: await solanaData.json()
+  };
+};
+
+// Example: Compare trading volume across chains
+const compareChainVolumes = async (timeRange = '24h') => {
+  const data = await fetchMarketplaceData();
+  return {
+    ethereum: data.ethereum.total_volume,
+    polygon: data.polygon.total_volume,
+    solana: data.solana.total_volume,
+    total: data.ethereum.total_volume + 
+           data.polygon.total_volume + 
+           data.solana.total_volume
+  };
+};
+```
+
 ### ⏰ Time-Based Analytics
 ```javascript
 const timeRangeOptions = [

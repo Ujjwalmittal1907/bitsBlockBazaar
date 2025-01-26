@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
 import 'chart.js/auto';
 import FuturisticLoader from './shared/FuturisticLoader';
@@ -12,6 +13,7 @@ const NftMarketplaceAnalytics = () => {
   const [metricType, setMetricType] = useState('volume');
   const [graphType, setGraphType] = useState('bar');
   const [timeRange, setTimeRange] = useState('24h');
+  const [blockchain, setBlockchain] = useState('ethereum');
   const [isLoading, setIsLoading] = useState(true);
   const [analyticsMetrics, setAnalyticsMetrics] = useState({
     totalVolume: 0,
@@ -35,6 +37,13 @@ const NftMarketplaceAnalytics = () => {
     { value: '30d', label: 'Last 30 Days', description: 'Monthly market trends' },
     { value: '90d', label: 'Last 90 Days', description: 'Quarterly market view' },
     { value: 'all', label: 'All Time', description: 'Complete market history' }
+  ];
+
+  const blockchainOptions = [
+    { value: 'ethereum', label: 'Ethereum' },
+    { value: 'polygon', label: 'Polygon' },
+    { value: 'binance', label: 'Binance' },
+    { value: 'full', label: 'All Blockchains' }
   ];
 
   const getLoadingMessage = () => {
@@ -127,87 +136,101 @@ const NftMarketplaceAnalytics = () => {
     }
   };
 
-  useEffect(() => {
-    const calculateMetrics = (data) => {
-      const totalVolume = data.reduce((sum, item) => sum + (Number(item.volume) || 0), 0);
-      const totalSales = data.reduce((sum, item) => sum + (Number(item.sales) || 0), 0);
-      const totalTransactions = data.reduce((sum, item) => sum + (Number(item.transactions) || 0), 0);
-      const totalTransfers = data.reduce((sum, item) => sum + (Number(item.transfers) || 0), 0);
-      
-      // Calculate advanced metrics
-      const avgVolumePerSale = totalSales > 0 ? totalVolume / totalSales : 0;
-      const avgTransactionsPerMarketplace = data.length > 0 ? totalTransactions / data.length : 0;
-      const transferEfficiency = totalTransfers > 0 ? totalTransactions / totalTransfers : 0;
-      const salesConversionRate = totalTransactions > 0 ? (totalSales / totalTransactions) * 100 : 0;
-
-      // Calculate market share percentages
-      const marketShare = data
-        .map(item => ({
-          name: item.name,
-          share: (Number(item.volume) / totalVolume) * 100
-        }))
-        .sort((a, b) => b.share - a.share)
-        .slice(0, 5);
-
-      setAnalyticsMetrics({
-        totalVolume,
-        totalSales,
-        totalTransactions,
-        totalTransfers,
-        avgVolumePerSale,
-        avgTransactionsPerMarketplace,
-        marketShare,
-        transferEfficiency,
-        salesConversionRate
-      });
-
-      // Process marketplace details with performance indicators
-      const details = data.map(item => ({
-        name: item.name,
-        volume: Number(item.volume) || 0,
-        sales: Number(item.sales) || 0,
-        transactions: Number(item.transactions) || 0,
-        transfers: Number(item.transfers) || 0,
-        url: item.url,
-        thumbnail: item.thumbnail_url,
-        efficiency: item.transactions > 0 ? item.volume / item.transactions : 0,
-        marketShare: totalVolume > 0 ? ((Number(item.volume) || 0) / totalVolume) * 100 : 0,
-        salesPerformance: item.transactions > 0 ? (Number(item.sales) / item.transactions) * 100 : 0
-      })).sort((a, b) => b.volume - a.volume);
-
-      setMarketplaceDetails(details);
-    };
-
-    const fetchAnalytics = async () => {
-      try {
-        setIsLoading(true);
-        const options = {
-          method: 'GET',
+  const fetchAnalytics = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axios.get(
+        'https://api.unleashnfts.com/api/v2/nft/marketplace/analytics',
+        {
+          params: {
+            blockchain: blockchain,
+            time_range: timeRange,
+            sort_by: 'volume',
+            sort_order: 'desc',
+            limit: 100
+          },
           headers: {
-            'x-api-key': process.env.REACT_APP_X_API_KEY
+            'accept': 'application/json',
+            'x-api-key': process.env.REACT_APP_UNLEASH_API_KEY
           }
+        }
+      );
+
+      if (response.data && Array.isArray(response.data.data)) {
+        const marketplaceData = response.data.data;
+        setData(marketplaceData);
+        
+        const calculateMetrics = (data) => {
+          const totalVolume = data.reduce((sum, item) => sum + (Number(item.volume) || 0), 0);
+          const totalSales = data.reduce((sum, item) => sum + (Number(item.sales) || 0), 0);
+          const totalTransactions = data.reduce((sum, item) => sum + (Number(item.transactions) || 0), 0);
+          const totalTransfers = data.reduce((sum, item) => sum + (Number(item.transfers) || 0), 0);
+          
+          // Calculate advanced metrics
+          const avgVolumePerSale = totalSales > 0 ? totalVolume / totalSales : 0;
+          const avgTransactionsPerMarketplace = data.length > 0 ? totalTransactions / data.length : 0;
+          const transferEfficiency = totalTransfers > 0 ? totalTransactions / totalTransfers : 0;
+          const salesConversionRate = totalTransactions > 0 ? (totalSales / totalTransactions) * 100 : 0;
+
+          // Calculate market share percentages
+          const marketShare = data
+            .map(item => ({
+              name: item.name,
+              share: (Number(item.volume) / totalVolume) * 100
+            }))
+            .sort((a, b) => b.share - a.share)
+            .slice(0, 5);
+
+          setAnalyticsMetrics({
+            totalVolume,
+            totalSales,
+            totalTransactions,
+            totalTransfers,
+            avgVolumePerSale,
+            avgTransactionsPerMarketplace,
+            marketShare,
+            transferEfficiency,
+            salesConversionRate
+          });
+
+          // Process marketplace details with performance indicators
+          const details = data.map(item => ({
+            name: item.name,
+            volume: Number(item.volume) || 0,
+            sales: Number(item.sales) || 0,
+            transactions: Number(item.transactions) || 0,
+            transfers: Number(item.transfers) || 0,
+            url: item.url,
+            thumbnail: item.thumbnail_url,
+            efficiency: item.transactions > 0 ? item.volume / item.transactions : 0,
+            marketShare: totalVolume > 0 ? ((Number(item.volume) || 0) / totalVolume) * 100 : 0,
+            salesPerformance: item.transactions > 0 ? (Number(item.sales) / item.transactions) * 100 : 0
+          })).sort((a, b) => b.volume - a.volume);
+
+          setMarketplaceDetails(details);
         };
 
-        const response = await fetch(
-          `https://api.unleashnfts.com/api/v2/nft/marketplace/analytics?blockchain=full&time_range=${timeRange}&sort_by=name&sort_order=desc&offset=0&limit=30`,
-          options
-        );
-        const result = await response.json();
+        calculateMetrics(marketplaceData);
         
-        if (result.data) {
-          setData(result.data);
-          setFilteredData(result.data);
-          calculateMetrics(result.data);
-        }
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error:', error);
-        setIsLoading(false);
+        // Filter and process data based on selected metric type
+        const processedData = marketplaceData
+          .sort((a, b) => Number(b[metricType]) - Number(a[metricType]))
+          .slice(0, 10);
+        setFilteredData(processedData);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching marketplace analytics:', error);
+      // Add user-friendly error handling
+      const errorMessage = error.response?.data?.message || 'Failed to fetch marketplace data';
+      // You can add a toast notification or error state here
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchAnalytics();
-  }, [timeRange]);
+  }, [blockchain, timeRange, metricType]);
 
   const getChartData = () => {
     const sortedData = [...filteredData].sort((a, b) => {
@@ -313,6 +336,16 @@ const NftMarketplaceAnalytics = () => {
               />
             )
           }}
+          styles={customSelectStyles}
+        />
+
+        <Select
+          className="min-w-[200px] z-10"
+          options={blockchainOptions}
+          value={blockchainOptions.find(option => option.value === blockchain)}
+          onChange={(selected) => setBlockchain(selected.value)}
+          placeholder={isLoading ? "Loading..." : "Select blockchain..."}
+          isDisabled={isLoading}
           styles={customSelectStyles}
         />
 

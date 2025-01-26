@@ -31,22 +31,35 @@ const NFTWashTradeInsights = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timePeriod, setTimePeriod] = useState('24h');
+  const [blockchain, setBlockchain] = useState('ethereum');
   const { isDark } = useTheme();
 
   const timeOptions = [
-    { value: '24h', label: 'Last 24 Hours' },
-    { value: '7d', label: 'Last 7 Days' },
-    { value: '30d', label: 'Last 30 Days' },
-    { value: 'all', label: 'All Time' }
+    { value: '24h', label: 'Last 24H', description: 'Daily wash trading activity' },
+    { value: '7d', label: 'Last 7D', description: 'Weekly wash trading patterns' },
+    { value: '30d', label: 'Last 30D', description: 'Monthly wash trading trends' },
+    { value: 'all', label: 'All Time', description: 'Historical wash trading data' }
   ];
 
-  const formatNumber = (num) => {
+  const blockchainOptions = [
+    { value: 'ethereum', label: 'Ethereum' },
+    { value: 'polygon', label: 'Polygon' },
+    { value: 'binance', label: 'Binance' },
+    { value: 'full', label: 'All Blockchains' }
+  ];
+
+  const formatNumber = (num, isCurrency = false) => {
+    if (num === null || num === undefined) return '-';
+    if (isCurrency) {
+      return formatCurrency(num);
+    }
     if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
     return num.toLocaleString();
   };
 
   const formatCurrency = (value) => {
+    if (value === null || value === undefined) return '-';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -56,38 +69,50 @@ const NFTWashTradeInsights = () => {
   };
 
   const getPercentageChange = (change) => {
-    if (change === null || change === undefined) return null;
+    if (change === null || change === undefined) return '-';
     // Convert from decimal to percentage and handle edge cases
     const percentage = change * 100;
-    if (isNaN(percentage)) return null;
+    if (isNaN(percentage)) return '-';
     return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
   };
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      const API_KEY = process.env.REACT_APP_X_API_KEY;
+      
+      if (!API_KEY) {
+        throw new Error('API key is not configured. Please set REACT_APP_X_API_KEY in your environment.');
+      }
+
       const options = {
         method: 'GET',
         headers: {
           accept: 'application/json',
-          'x-api-key': process.env.REACT_APP_X_API_KEY
+          'x-api-key': API_KEY
         }
       };
 
       const response = await fetch(
-        `https://api.unleashnfts.com/api/v2/nft/market-insights/washtrade?blockchain=full&time_range=${timePeriod}`,
+        `https://api.unleashnfts.com/api/v2/nft/market-insights/washtrade?blockchain=${blockchain}&time_range=${timePeriod}`,
         options
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch wash trade insights');
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch wash trade insights: ${errorText}`);
       }
 
       const jsonData = await response.json();
+      if (!jsonData.data?.[0]) {
+        throw new Error('No wash trading data available for the selected time range');
+      }
       setData(jsonData.data[0]);
       setError(null);
     } catch (err) {
+      console.error('API Error:', err);
       setError(err.message);
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -95,7 +120,7 @@ const NFTWashTradeInsights = () => {
 
   useEffect(() => {
     fetchData();
-  }, [timePeriod]);
+  }, [timePeriod, blockchain]);
 
   const getLoadingMessage = () => {
     switch(timePeriod) {
@@ -133,62 +158,24 @@ const NFTWashTradeInsights = () => {
     }
   };
 
-  const getSummaryInsights = () => {
-    if (!data) return [];
-
-    const insights = [];
-    
-    // Volume insights
-    const volumeChange = data.washtrade_volume_change;
-    const volumeChangeStr = getPercentageChange(volumeChange);
-    if (volumeChangeStr) {
-      insights.push({
-        type: volumeChange >= 0 ? 'warning' : 'success',
-        text: `Wash trade volume has ${volumeChange >= 0 ? 'increased' : 'decreased'} by ${volumeChangeStr.replace('+', '')} ${timePeriod === '24h' ? 'in the last 24 hours' : `over the last ${timePeriod}`}`
-      });
-    }
-
-    // Sales insights
-    const salesChange = data.washtrade_suspect_sales_change;
-    const salesChangeStr = getPercentageChange(salesChange);
-    if (salesChangeStr) {
-      insights.push({
-        type: salesChange >= 0 ? 'warning' : 'success',
-        text: `Suspect sales have ${salesChange >= 0 ? 'increased' : 'decreased'} by ${salesChangeStr.replace('+', '')}`
-      });
-    }
-
-    // Wallets insights
-    const walletsChange = data.washtrade_wallets_change;
-    const walletsChangeStr = getPercentageChange(walletsChange);
-    if (walletsChangeStr) {
-      insights.push({
-        type: walletsChange >= 0 ? 'warning' : 'success',
-        text: `${walletsChange >= 0 ? 'More' : 'Fewer'} wallets are involved in wash trading (${walletsChangeStr.replace('+', '')} change)`
-      });
-    }
-
-    // Volume concentration
-    const topVolume = parseFloat(data.records?.[0]?.washtrade_volume) || 0;
-    const totalVolume = parseFloat(data.washtrade_volume) || 0;
-    if (topVolume > 0 && totalVolume > 0) {
-      const concentration = (topVolume / totalVolume * 100).toFixed(1);
-      insights.push({
-        type: concentration > 50 ? 'warning' : 'info',
-        text: `Top wash traded NFT accounts for ${concentration}% of total wash trade volume`
-      });
-    }
-
-    return insights;
-  };
-
   const renderChart = () => {
+    if (!data?.block_dates?.length) {
+      return <div className="flex items-center justify-center h-full text-slate-400">No data available</div>;
+    }
+
+    // Reverse arrays to show chronological order
+    const dates = [...data.block_dates].reverse();
+    const volumeData = [...data.washtrade_volume_trend || []].reverse();
+    const salesData = [...data.washtrade_suspect_sales_trend || []].reverse();
+    const assetsData = [...data.washtrade_assets_trend || []].reverse();
+    const walletsData = [...data.washtrade_wallets_trend || []].reverse();
+
     const lineChartData = {
-      labels: [...(data.block_dates?.map(date => formatAxisDate(date)) || [])].reverse(),
+      labels: dates.map(date => formatAxisDate(date)),
       datasets: [
         {
-          label: 'Wash Trade Volume',
-          data: [...(data.washtrade_volume_trend || [])].reverse(),
+          label: 'Wash Trade Volume (ETH)',
+          data: volumeData,
           borderColor: 'rgb(99, 102, 241)',
           backgroundColor: 'rgba(99, 102, 241, 0.1)',
           fill: true,
@@ -197,9 +184,27 @@ const NFTWashTradeInsights = () => {
         },
         {
           label: 'Suspect Sales',
-          data: [...(data.washtrade_suspect_sales_trend || [])].reverse(),
+          data: salesData,
           borderColor: 'rgb(244, 63, 94)',
           backgroundColor: 'rgba(244, 63, 94, 0.1)',
+          fill: true,
+          tension: 0.4,
+          yAxisID: 'y1'
+        },
+        {
+          label: 'Affected Assets',
+          data: assetsData,
+          borderColor: 'rgb(168, 85, 247)',
+          backgroundColor: 'rgba(168, 85, 247, 0.1)',
+          fill: true,
+          tension: 0.4,
+          yAxisID: 'y1'
+        },
+        {
+          label: 'Suspect Wallets',
+          data: walletsData,
+          borderColor: 'rgb(234, 179, 8)',
+          backgroundColor: 'rgba(234, 179, 8, 0.1)',
           fill: true,
           tension: 0.4,
           yAxisID: 'y1'
@@ -238,14 +243,20 @@ const NFTWashTradeInsights = () => {
           padding: 12,
           callbacks: {
             title: (context) => {
-              const reversedIndex = data.block_dates.length - 1 - context[0].dataIndex;
-              return formatAxisDate(data.block_dates[reversedIndex]);
+              return new Date(dates[context[0].dataIndex]).toLocaleString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              });
             },
             label: function(context) {
               let label = context.dataset.label || '';
               if (label) {
                 label += ': ';
-                if (context.dataset.label === 'Wash Trade Volume') {
+                if (label.includes('Volume')) {
                   label += formatCurrency(context.raw);
                 } else {
                   label += formatNumber(context.raw);
@@ -317,7 +328,7 @@ const NFTWashTradeInsights = () => {
           },
           title: {
             display: true,
-            text: 'Number of Sales',
+            text: 'Count',
             color: '#E2E8F0',
             font: {
               size: 12,
@@ -378,6 +389,52 @@ const NFTWashTradeInsights = () => {
     })
   };
 
+  const getSummaryInsights = () => {
+    if (!data) return [];
+    
+    const insights = [];
+    
+    // Volume insights
+    const volumeChange = data.washtrade_volume_change;
+    const volumeChangeStr = getPercentageChange(volumeChange);
+    if (volumeChangeStr) {
+      insights.push({
+        type: volumeChange >= 0 ? 'warning' : 'success',
+        text: `Wash trade volume has ${volumeChange >= 0 ? 'increased' : 'decreased'} by ${volumeChangeStr.replace('+', '')} ${timePeriod === '24h' ? 'in the last 24 hours' : `over the last ${timePeriod}`}`
+      });
+    }
+
+    // Sales insights
+    const salesChange = data.washtrade_suspect_sales_change;
+    const salesChangeStr = getPercentageChange(salesChange);
+    if (salesChangeStr) {
+      insights.push({
+        type: salesChange >= 0 ? 'warning' : 'success',
+        text: `Suspect sales have ${salesChange >= 0 ? 'increased' : 'decreased'} by ${salesChangeStr.replace('+', '')}`
+      });
+    }
+
+    // Wallets insights
+    const walletsChange = data.washtrade_wallets_change;
+    const walletsChangeStr = getPercentageChange(walletsChange);
+    if (walletsChangeStr) {
+      insights.push({
+        type: walletsChange >= 0 ? 'warning' : 'success',
+        text: `${walletsChange >= 0 ? 'More' : 'Fewer'} wallets are involved in wash trading (${walletsChangeStr.replace('+', '')} change)`
+      });
+    }
+
+    // Wash trade level
+    if (data.washtrade_level) {
+      insights.push({
+        type: data.washtrade_level > 50 ? 'warning' : 'info',
+        text: `Current wash trade level is ${data.washtrade_level}%`
+      });
+    }
+
+    return insights;
+  };
+
   return (
     <div className="bg-[#0F172A] text-white p-6 rounded-xl space-y-6">
       {error ? (
@@ -393,13 +450,27 @@ const NFTWashTradeInsights = () => {
         <>
           {/* Header with Controls */}
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-slate-100">Wash Trade Insights</h2>
+            <div>
+              <h2 className="text-2xl font-bold text-slate-100">NFT Wash Trade Insights</h2>
+              <p className="text-slate-400 mt-1">
+                {loading ? getLoadingMessage() : `Analyzing ${data?.block_dates?.length || 0} data points`}
+              </p>
+            </div>
             <div className="flex gap-4">
               <Select
                 value={timeOptions.find(option => option.value === timePeriod)}
                 onChange={(selectedOption) => setTimePeriod(selectedOption.value)}
                 options={timeOptions}
-                className="w-36"
+                className="w-48"
+                classNamePrefix="select"
+                isSearchable={false}
+                styles={customSelectStyles}
+              />
+              <Select
+                value={blockchainOptions.find(option => option.value === blockchain)}
+                onChange={(selectedOption) => setBlockchain(selectedOption.value)}
+                options={blockchainOptions}
+                className="w-48"
                 classNamePrefix="select"
                 isSearchable={false}
                 styles={customSelectStyles}
@@ -411,30 +482,30 @@ const NFTWashTradeInsights = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="p-4 rounded-xl bg-[#1E293B] shadow-lg border border-gray-700">
               <h3 className="text-sm font-medium text-slate-400">Wash Trade Volume</h3>
-              <p className="text-2xl font-semibold mt-1 text-slate-100">{formatNumber(data.washtrade_volume, true)}</p>
-              <p className={`text-sm mt-1 ${data.washtrade_volume_change >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                {getPercentageChange(data.washtrade_volume_change)}
+              <p className="text-2xl font-semibold mt-1 text-slate-100">{formatNumber(data?.washtrade_volume, true)}</p>
+              <p className={`text-sm mt-1 ${data?.washtrade_volume_change >= 0 ? 'text-red-400' : 'text-green-400'}`}>
+                {getPercentageChange(data?.washtrade_volume_change)}
               </p>
             </div>
             <div className="p-4 rounded-xl bg-[#1E293B] shadow-lg border border-gray-700">
               <h3 className="text-sm font-medium text-slate-400">Suspect Sales</h3>
-              <p className="text-2xl font-semibold mt-1 text-slate-100">{formatNumber(data.washtrade_suspect_sales)}</p>
-              <p className={`text-sm mt-1 ${data.washtrade_suspect_sales_change >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                {getPercentageChange(data.washtrade_suspect_sales_change)}
+              <p className="text-2xl font-semibold mt-1 text-slate-100">{formatNumber(data?.washtrade_suspect_sales)}</p>
+              <p className={`text-sm mt-1 ${data?.washtrade_suspect_sales_change >= 0 ? 'text-red-400' : 'text-green-400'}`}>
+                {getPercentageChange(data?.washtrade_suspect_sales_change)}
               </p>
             </div>
             <div className="p-4 rounded-xl bg-[#1E293B] shadow-lg border border-gray-700">
               <h3 className="text-sm font-medium text-slate-400">Affected Assets</h3>
-              <p className="text-2xl font-semibold mt-1 text-slate-100">{formatNumber(data.washtrade_assets)}</p>
-              <p className={`text-sm mt-1 ${data.washtrade_assets_change >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                {getPercentageChange(data.washtrade_assets_change)}
+              <p className="text-2xl font-semibold mt-1 text-slate-100">{formatNumber(data?.washtrade_assets)}</p>
+              <p className={`text-sm mt-1 ${data?.washtrade_assets_change >= 0 ? 'text-red-400' : 'text-green-400'}`}>
+                {getPercentageChange(data?.washtrade_assets_change)}
               </p>
             </div>
             <div className="p-4 rounded-xl bg-[#1E293B] shadow-lg border border-gray-700">
               <h3 className="text-sm font-medium text-slate-400">Suspect Wallets</h3>
-              <p className="text-2xl font-semibold mt-1 text-slate-100">{formatNumber(data.washtrade_wallets)}</p>
-              <p className={`text-sm mt-1 ${data.washtrade_wallets_change >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                {getPercentageChange(data.washtrade_wallets_change)}
+              <p className="text-2xl font-semibold mt-1 text-slate-100">{formatNumber(data?.washtrade_wallets)}</p>
+              <p className={`text-sm mt-1 ${data?.washtrade_wallets_change >= 0 ? 'text-red-400' : 'text-green-400'}`}>
+                {getPercentageChange(data?.washtrade_wallets_change)}
               </p>
             </div>
           </div>
@@ -468,74 +539,6 @@ const NFTWashTradeInsights = () => {
           <div className="p-4 rounded-xl bg-[#1E293B] shadow-lg border border-gray-700">
             <div className="h-[400px]">
               {renderChart()}
-            </div>
-          </div>
-
-          {/* Wash Trade Stats Table */}
-          <div className="p-4 rounded-xl bg-[#1E293B] shadow-lg border border-gray-700">
-            <h3 className="text-lg font-semibold mb-3 text-slate-100">Suspected Wash Trades</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="px-4 py-2 text-left text-slate-400">Contract</th>
-                    <th className="px-4 py-2 text-right text-slate-400">Volume</th>
-                    <th className="px-4 py-2 text-right text-slate-400">Suspect Sales</th>
-                    <th className="px-4 py-2 text-right text-slate-400">Suspect Transactions</th>
-                    <th className="px-4 py-2 text-right text-slate-400">Wallets</th>
-                    <th className="px-4 py-2 text-right text-slate-400">Change</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data?.records?.slice(0, 5).map((item, index) => (
-                    <tr key={index} className="border-b border-gray-700 hover:bg-slate-800/50 transition-colors">
-                      <td className="px-4 py-3">
-                        <div>
-                          <div className="font-mono text-sm text-slate-300">
-                            {item.contract_address.slice(0, 6)}...{item.contract_address.slice(-4)}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            Token ID: {item.token_id.length > 15 ? item.token_id.slice(0, 15) + '...' : item.token_id}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="text-indigo-400">{formatNumber(item.washtrade_volume, true)}</div>
-                        <div className="text-xs text-slate-500">ETH</div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="text-slate-300">{item.washtrade_suspect_sales}</div>
-                        <div className={`text-xs ${item.washtrade_suspect_sales_change >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                          {item.washtrade_suspect_sales_change !== null ? getPercentageChange(item.washtrade_suspect_sales_change) : '-'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="text-slate-300">{item.washtrade_suspect_transactions}</div>
-                        <div className={`text-xs ${item.washtrade_suspect_transactions_change >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                          {item.washtrade_suspect_transactions_change !== null ? getPercentageChange(item.washtrade_suspect_transactions_change) : '-'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="text-slate-300">{item.washtrade_wallets}</div>
-                        <div className={`text-xs ${item.washtrade_wallets_change >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                          {item.washtrade_wallets_change !== null ? getPercentageChange(item.washtrade_wallets_change) : '-'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className={`text-sm ${item.washtrade_volume_change >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                          {item.washtrade_volume_change !== null ? getPercentageChange(item.washtrade_volume_change) : '-'}
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          {item.washtrade_assets} assets
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="text-xs text-slate-500 mt-2 text-right">
-                Showing top 5 of {data?.pagination?.total_items?.toLocaleString()} items
-              </div>
             </div>
           </div>
         </>

@@ -1,5 +1,14 @@
 // Base URL for NFT insights API endpoints
-const BASE_URL = 'https://api.unleashnfts.com/api/v2/nft/market-insights';
+const BASE_URL = `${process.env.REACT_APP_API_BASE_URL || 'https://api.unleashnfts.com/api/v2'}/nft/market-insights`;
+
+// Validate API configuration
+if (!process.env.REACT_APP_X_API_KEY) {
+  console.error('API key is not configured. Please set REACT_APP_X_API_KEY in your environment.');
+}
+
+if (!process.env.REACT_APP_API_BASE_URL) {
+  console.warn('API base URL is not configured. Using default URL:', BASE_URL);
+}
 
 // API Key
 const API_KEY = process.env.REACT_APP_X_API_KEY;

@@ -2,6 +2,27 @@ import React, { useState, useEffect } from 'react';
 import ModernLoader from '../ModernLoader';
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Select from 'react-select';
+import { Line as ChartLine } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip as ChartTooltip,
+  Legend
+} from 'chart.js';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  ChartTooltip,
+  Legend
+);
 
 const NFTMarketAnalyticsReport = () => {
   const [data, setData] = useState(null);
@@ -9,7 +30,9 @@ const NFTMarketAnalyticsReport = () => {
   const [error, setError] = useState(null);
   const [selectedMetric, setSelectedMetric] = useState('volume');
   const [timeRange, setTimeRange] = useState('24h');
+  const [blockchain, setBlockchain] = useState('ethereum');
   const [chartType, setChartType] = useState('area');
+  const [chartData, setChartData] = useState({ data: [] });
 
   const timeRangeOptions = [
     { value: '15m', label: 'Last 15 Minutes', description: 'Most recent market insights' },
@@ -19,6 +42,13 @@ const NFTMarketAnalyticsReport = () => {
     { value: '30d', label: 'Last 30 Days', description: 'Monthly market trends' },
     { value: '90d', label: 'Last 90 Days', description: 'Quarterly market view' },
     { value: 'all', label: 'All Time', description: 'Complete market history' }
+  ];
+
+  const blockchainOptions = [
+    { value: 'ethereum', label: 'Ethereum' },
+    { value: 'polygon', label: 'Polygon' },
+    { value: 'binance', label: 'Binance' },
+    { value: 'full', label: 'All Blockchains' }
   ];
 
   const metricOptions = [
@@ -121,7 +151,7 @@ const NFTMarketAnalyticsReport = () => {
       };
 
       const response = await fetch(
-        `https://api.unleashnfts.com/api/v2/nft/market-insights/analytics?time_range=${timeRange}`,
+        `https://api.unleashnfts.com/api/v2/nft/market-insights/analytics?blockchain=${blockchain}&time_range=${timeRange}`,
         options
       );
       const result = await response.json();
@@ -140,7 +170,7 @@ const NFTMarketAnalyticsReport = () => {
 
   useEffect(() => {
     fetchData();
-  }, [timeRange]);
+  }, [timeRange, blockchain]);
 
   const getTimeRangeLabel = () => {
     const option = timeRangeOptions.find(opt => opt.value === timeRange);
@@ -149,6 +179,7 @@ const NFTMarketAnalyticsReport = () => {
 
   const formatAxisDate = (dateString) => {
     if (!dateString) return '';
+    
     const date = new Date(dateString);
     
     switch (timeRange) {
@@ -158,31 +189,19 @@ const NFTMarketAnalyticsReport = () => {
         return date.toLocaleTimeString('en-US', {
           hour: '2-digit',
           minute: '2-digit',
-          hour12: true,
-          timeZone: 'UTC'
+          hour12: true
         });
       case '7d':
         return date.toLocaleDateString('en-US', {
           weekday: 'short',
           month: 'short',
-          day: 'numeric',
-          timeZone: 'UTC'
-        });
-      case '30d':
-      case '90d':
-        return date.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          timeZone: 'UTC'
-        });
-      case 'all':
-        return date.toLocaleDateString('en-US', {
-          month: 'short',
-          year: 'numeric',
-          timeZone: 'UTC'
+          day: 'numeric'
         });
       default:
-        return date.toLocaleDateString();
+        return date.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric'
+        });
     }
   };
 
@@ -221,23 +240,128 @@ const NFTMarketAnalyticsReport = () => {
     return metrics[selectedMetric];
   };
 
-  const getChartData = () => {
-    if (!data || !metricData) return [];
+  const metricData = getMetricData();
 
-    const trend = metricData.trend;
-    const dates = data.block_dates;
+  useEffect(() => {
+    if (data && selectedMetric) {
+      // Check if data is an object with trend data
+      if (data?.block_dates && data[`${selectedMetric}_trend`]) {
+        const rawData = data.block_dates.map((date, index) => ({
+          date: date,
+          value: data[`${selectedMetric}_trend`][index] || 0
+        }));
+        setChartData(formatChartData(rawData));
+      } else {
+        setChartData({ data: [] });
+      }
+    }
+  }, [data, selectedMetric]);
+
+  const formatChartData = (rawData) => {
+    if (!Array.isArray(rawData) || !rawData.length) return { data: [] };
+
+    const sortedData = [...rawData].sort((a, b) => new Date(a.date) - new Date(b.date));
     
-    if (!trend || !dates || trend.length !== dates.length) return [];
-
-    return trend.map((value, index) => ({
-      time: formatAxisDate(dates[index]),
-      value: value || 0,
-      date: dates[index] // Keep original date for tooltip
-    })).reverse();
+    return {
+      data: sortedData.map(item => ({
+        date: new Date(item.date).getTime(),
+        value: Number(item.value) || 0
+      }))
+    };
   };
 
-  const metricData = getMetricData();
-  const chartData = getChartData();
+  const renderChart = (type) => {
+    if (!chartData || !chartData.data || !metricData) return null;
+
+    const commonProps = {
+      data: chartData.data,
+      margin: { top: 10, right: 30, left: 0, bottom: 0 },
+    };
+
+    const xAxisProps = {
+      dataKey: "date",
+      stroke: "#94A3B8",
+      tickLine: false,
+      tick: { fill: "#94A3B8", fontSize: 12 },
+      tickFormatter: (value) => formatAxisDate(new Date(value).toISOString())
+    };
+
+    const yAxisProps = {
+      stroke: "#94A3B8",
+      tickLine: false,
+      tick: { fill: "#94A3B8", fontSize: 12 },
+      tickFormatter: (value) => formatNumber(value, metricData.isPrice)
+    };
+
+    switch (type) {
+      case 'area':
+        return (
+          <div className="h-[600px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart {...commonProps}>
+                <CartesianGrid stroke="rgba(226, 232, 240, 0.1)" strokeDasharray="3 3" vertical={false} />
+                <XAxis {...xAxisProps} />
+                <YAxis {...yAxisProps} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke={metricData.color}
+                  fill={metricData.color}
+                  fillOpacity={0.1}
+                  strokeWidth={2}
+                  activeDot={{ r: 6 }}
+                  animationDuration={300}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        );
+      case 'bar':
+        return (
+          <div className="h-[600px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart {...commonProps}>
+                <CartesianGrid stroke="rgba(226, 232, 240, 0.1)" strokeDasharray="3 3" vertical={false} />
+                <XAxis {...xAxisProps} />
+                <YAxis {...yAxisProps} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar
+                  dataKey="value"
+                  fill={metricData.color}
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={50}
+                  animationDuration={300}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        );
+      case 'line':
+      default:
+        return (
+          <div className="h-[600px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart {...commonProps}>
+                <CartesianGrid stroke="rgba(226, 232, 240, 0.1)" strokeDasharray="3 3" vertical={false} />
+                <XAxis {...xAxisProps} />
+                <YAxis {...yAxisProps} />
+                <Tooltip content={<CustomTooltip />} />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke={metricData.color}
+                  strokeWidth={2}
+                  dot={{ fill: metricData.color, r: 1 }}
+                  activeDot={{ r: 6 }}
+                  animationDuration={300}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        );
+    }
+  };
 
   const formatNumber = (value, isPrice = false) => {
     if (!value) return '0';
@@ -274,8 +398,7 @@ const NFTMarketAnalyticsReport = () => {
               day: 'numeric',
               hour: 'numeric',
               minute: '2-digit',
-              hour12: true,
-              timeZone: 'UTC'
+              hour12: true
             })}
           </p>
           <div className="flex items-baseline gap-2">
@@ -295,161 +418,11 @@ const NFTMarketAnalyticsReport = () => {
     return null;
   };
 
-  const getXAxisConfig = () => {
-    const dataLength = chartData.length;
-    let interval = 0;
-
-    switch (timeRange) {
-      case '15m':
-      case '30m':
-        interval = Math.ceil(dataLength / 15);
-        break;
-      case '24h':
-        interval = Math.ceil(dataLength / 24); 
-        break;
-      case '7d':
-        interval = Math.ceil(dataLength / 14); 
-        break;
-      case '30d':
-        interval = Math.ceil(dataLength / 30); 
-        break;
-      case '90d':
-        interval = Math.ceil(dataLength / 30);
-        break;
-      case 'all':
-        interval = Math.ceil(dataLength / 24);
-        break;
-      default:
-        interval = Math.ceil(dataLength / 15);
-    }
-
-    return {
-      stroke: '#64748B',
-      tick: { 
-        fill: '#94A3B8',
-        fontSize: 11
-      },
-      tickLine: { stroke: '#64748B' },
-      dataKey: "time",
-      angle: -45,
-      textAnchor: "end",
-      height: 60,
-      interval,
-      tickMargin: 25,
-      minTickGap: 15,
-      scale: 'point',
-      padding: { left: 10, right: 10 }
-    };
-  };
-
-  const renderChart = () => {
-    const commonProps = {
-      data: chartData,
-      margin: { top: 20, right: 30, left: 10, bottom: 60 }
-    };
-
-    const commonAxisProps = {
-      stroke: '#64748B',
-      tick: { 
-        fill: '#94A3B8',
-        fontSize: 11
-      },
-      tickLine: { stroke: '#64748B' }
-    };
-
-    const xAxisProps = getXAxisConfig();
-
-    const yAxisProps = {
-      ...commonAxisProps,
-      tickFormatter: (value) => formatNumber(value, metricData?.isPrice),
-      width: 80,
-      padding: { top: 20, bottom: 20 },
-      grid: {
-        stroke: 'rgba(226, 232, 240, 0.1)',
-        strokeDasharray: '3 3'
-      }
-    };
-
-    switch (chartType) {
-      case 'area':
-        return (
-          <div className="h-[600px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart {...commonProps}>
-                <defs>
-                  <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={metricData?.color} stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor={metricData?.color} stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="rgba(226, 232, 240, 0.1)" strokeDasharray="3 3" vertical={false} />
-                <XAxis {...xAxisProps} />
-                <YAxis {...yAxisProps} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke={metricData?.color}
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorGradient)"
-                  animationDuration={300}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        );
-
-      case 'line':
-        return (
-          <div className="h-[600px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart {...commonProps}>
-                <CartesianGrid stroke="rgba(226, 232, 240, 0.1)" strokeDasharray="3 3" vertical={false} />
-                <XAxis {...xAxisProps} />
-                <YAxis {...yAxisProps} />
-                <Tooltip content={<CustomTooltip />} />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke={metricData?.color}
-                  strokeWidth={2}
-                  dot={{ fill: metricData?.color, r: 1 }}
-                  activeDot={{ r: 6 }}
-                  animationDuration={300}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        );
-
-      case 'bar':
-        return (
-          <div className="h-[600px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart {...commonProps}>
-                <CartesianGrid stroke="rgba(226, 232, 240, 0.1)" strokeDasharray="3 3" vertical={false} />
-                <XAxis {...xAxisProps} />
-                <YAxis {...yAxisProps} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar 
-                  dataKey="value" 
-                  fill={metricData?.color}
-                  animationDuration={300}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        );
-    }
-  };
-
   const getSummaryInsights = () => {
     if (!data) return [];
 
     const insights = [];
     
-    // Volume insights
     const volumeChange = data.volume_change;
     const volumeChangeStr = getPercentageChange(volumeChange);
     if (volumeChangeStr) {
@@ -459,7 +432,6 @@ const NFTMarketAnalyticsReport = () => {
       });
     }
 
-    // Sales insights
     const salesChange = data.sales_change;
     const salesChangeStr = getPercentageChange(salesChange);
     if (salesChangeStr) {
@@ -469,7 +441,6 @@ const NFTMarketAnalyticsReport = () => {
       });
     }
 
-    // Transactions insights
     const txChange = data.transactions_change;
     const txChangeStr = getPercentageChange(txChange);
     if (txChangeStr) {
@@ -686,48 +657,87 @@ const NFTMarketAnalyticsReport = () => {
               />
             </div>
 
-            <Select
-              className="min-w-[200px] z-10"
-              options={timeRangeOptions}
-              value={timeRangeOptions.find((option) => option.value === timeRange)}
-              onChange={(option) => setTimeRange(option.value)}
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  background: '#1E293B',
-                  borderColor: '#374151',
-                  '&:hover': {
-                    borderColor: '#4B5563'
-                  }
-                }),
-                menu: (base) => ({
-                  ...base,
-                  background: '#1E293B',
-                  border: '1px solid #374151'
-                }),
-                option: (base, { isFocused, isSelected }) => ({
-                  ...base,
-                  backgroundColor: isSelected
-                    ? '#3B82F6'
-                    : isFocused
-                    ? '#2563EB'
-                    : '#1E293B',
-                  color: 'white',
-                  ':active': {
-                    backgroundColor: '#2563EB'
-                  }
-                }),
-                singleValue: (base) => ({
-                  ...base,
-                  color: 'white'
-                })
-              }}
-            />
+            <div className="flex items-center space-x-4">
+              <Select
+                className="min-w-[200px] z-10"
+                options={timeRangeOptions}
+                value={timeRangeOptions.find((option) => option.value === timeRange)}
+                onChange={(option) => setTimeRange(option.value)}
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    background: '#1E293B',
+                    borderColor: '#374151',
+                    '&:hover': {
+                      borderColor: '#4B5563'
+                    }
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    background: '#1E293B',
+                    border: '1px solid #374151'
+                  }),
+                  option: (base, { isFocused, isSelected }) => ({
+                    ...base,
+                    backgroundColor: isSelected
+                      ? '#3B82F6'
+                      : isFocused
+                      ? '#2563EB'
+                      : '#1E293B',
+                    color: 'white',
+                    ':active': {
+                      backgroundColor: '#2563EB'
+                    }
+                  }),
+                  singleValue: (base) => ({
+                    ...base,
+                    color: 'white'
+                  })
+                }}
+              />
+              <Select
+                className="min-w-[200px] z-10"
+                options={blockchainOptions}
+                value={blockchainOptions.find((option) => option.value === blockchain)}
+                onChange={(option) => setBlockchain(option.value)}
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    background: '#1E293B',
+                    borderColor: '#374151',
+                    '&:hover': {
+                      borderColor: '#4B5563'
+                    }
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    background: '#1E293B',
+                    border: '1px solid #374151'
+                  }),
+                  option: (base, { isFocused, isSelected }) => ({
+                    ...base,
+                    backgroundColor: isSelected
+                      ? '#3B82F6'
+                      : isFocused
+                      ? '#2563EB'
+                      : '#1E293B',
+                    color: 'white',
+                    ':active': {
+                      backgroundColor: '#2563EB'
+                    }
+                  }),
+                  singleValue: (base) => ({
+                    ...base,
+                    color: 'white'
+                  })
+                }}
+              />
+            </div>
           </div>
           
           {/* Chart Container */}
           <div className="h-[600px] w-full bg-[#1E293B] rounded-lg overflow-hidden">
-            {renderChart()}
+            {renderChart(chartType)}
           </div>
         </div>
       </div>
