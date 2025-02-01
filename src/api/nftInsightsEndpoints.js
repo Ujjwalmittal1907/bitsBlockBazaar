@@ -11,7 +11,7 @@ if (!process.env.REACT_APP_API_BASE_URL) {
 }
 
 // API Key
-const API_KEY = process.env.REACT_APP_X_API_KEY;
+const API_KEY = "df51d1d20cd88215009bea3b1861cf4d";
 
 // NFT Insights endpoints
 export const NFT_INSIGHTS_ENDPOINTS = {
