@@ -20,24 +20,8 @@
 - *APIs:* bitsCrunch NFT & Token APIs  
 - *Hosting:* AWS / Vercel  
 
-## *Setup & Installation*  
-1. *Clone the Repository:*  
-   sh  
-   git clone https://github.com/yourusername/bitsBlockBazar.git  
-   cd bitsBlockBazar  
-     
-2. *Install Dependencies:*  
-   sh  
-   npm install  # For frontend  
-   mvn clean install  # For backend  
-     
-3. *Set up Environment Variables:*  
-   - Configure .env file with your bitsCrunch API keys.  
-4. *Run the Application:*  
-   sh  
-   npm start  # Frontend  
-   mvn spring-boot:run  # Backend  
-     
+
+   ```  
 
 ## *API Integration*  
 - bitsCrunch’s NFT & Market APIs are used for fetching live blockchain data.  
@@ -47,14 +31,10 @@
 - 🚀 Multi-Blockchain Support (Solana, Polygon, etc.)  
 - 🔮 AI-Based NFT Price Predictions  
 - 📊 Social Sentiment Analysis for NFT Collections  
+  Check github repo here:-
+ https://github.com/Ujjwalmittal1907/bitsBlockBazaar
+ demo link: https://bits-block-bazaar.vercel.app/
+
 
 ## *Contributing*  
-We welcome contributions! Feel free to fork the repo, create feature branches, and submit PRs.  
-
-## *License*  
-MIT License  
-
-## *Contact*  
-- *Telegram:* [Join our Community](https://t.me/bitsCrunch)  
-- *Discord:* [bitsCrunch Discord](https://discord.gg/bitscrunch)  
-- *Email:* your.email@example.com
+We welcome contributions! Feel free to fork the repo, create feature branches, and submit PRs.'
