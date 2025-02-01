@@ -33,18 +33,18 @@ const Navbar = () => {
     { path: '/', label: 'Home' },
     {
       path: '#',
-      label: 'NFT Insights',
+      label: 'Web3 Watch',
       gradient: 'from-blue-600 to-indigo-600',
       subItems: [
-        { path: '/nftmarketanalyticsreport', label: 'NFT Market Analytics Report', highlight: true },
-        { path: '/nftwashtradeinsights', label: 'NFT Wash Trading Insights', highlight: true },
-        { path: '/nftscoresinsights', label: 'NFT Scores Insights' },
+        { path: '/nftmarketanalyticsreport', label: 'Blockchain Asset Report', highlight: true },
+        { path: '/nftwashtradeinsights', label: 'NFT Market Anomalies', highlight: true },
+        { path: '/nftscoresinsights', label: 'Token Trust Scores' },
         { path: '/nfttradersinsights', label: 'NFT Traders Insights' }
       ]
     },
     {
       path: '#',
-      label: 'NFT Marketplace',
+      label: 'BlockBazaar',
       gradient: 'from-indigo-600 to-purple-600',
       subItems: [
         { path: '/nftmarketplace', label: 'NFT Marketplaces' },
@@ -55,7 +55,7 @@ const Navbar = () => {
     },
     {
       path: '#',
-      label: 'NFT Collections',
+      label: 'CryptoCanvas',
       gradient: 'from-purple-600 to-pink-600',
       subItems: [
         { path: '/collectionmetadata', label: 'NFT Collection Metadata' },
@@ -250,7 +250,7 @@ const Navbar = () => {
                   to={item.path}
                   className={`block px-3 py-2 rounded-md text-base font-medium
                     ${isActive(item.path)
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-zinc-500 text-white'
                       : isDark
                         ? 'text-gray-300 hover:bg-gray-700'
                         : 'text-gray-900 hover:bg-gray-100'}`}
