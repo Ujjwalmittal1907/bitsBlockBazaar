@@ -40,7 +40,7 @@ const Home = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <FuturisticLoader size="large" text="Welcome to NFT Insights..." />
+        <FuturisticLoader size="large" text="Welcome to Bits Block Bazaar...." />
       </div>
     );
   }
