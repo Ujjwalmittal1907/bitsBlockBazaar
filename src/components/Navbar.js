@@ -70,14 +70,14 @@ const Navbar = () => {
 
   return (
     <nav ref={navRef} className={`sticky top-0 z-50 transition-all duration-300
-      ${isDark ? 'bg-gray-900/80' : 'bg-white/80'} backdrop-blur-lg
+      ${isDark ? 'bg-zinc-900/80' : 'bg-white/80'} backdrop-blur-lg
       border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link to="/" className="flex items-center">
-              <svg className="h-8 w-8" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* <svg className="h-8 w-8" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect width="32" height="32" rx="8" className={`${isDark ? 'fill-blue-500' : 'fill-blue-600'}`}/>
                 <path d="M8 8H24V24H8V8Z" className={`${isDark ? 'fill-blue-700' : 'fill-blue-800'}`}/>
                 <path d="M12 12L20 12L16 8L12 12Z" fill="white"/>
@@ -85,9 +85,9 @@ const Navbar = () => {
                 <path d="M12 12V20L8 16L12 12Z" className={`${isDark ? 'fill-blue-300' : 'fill-blue-200'}`}/>
                 <path d="M20 20V12L24 16L20 20Z" className={`${isDark ? 'fill-blue-300' : 'fill-blue-200'}`}/>
                 <circle cx="16" cy="16" r="3" fill="white"/>
-              </svg>
-              <span className={`ml-2 text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                NFT Insights
+              </svg> */}
+              <span className={`ml-2 text-xl font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                Bits Block Bazaar
               </span>
             </Link>
           </div>
@@ -102,7 +102,7 @@ const Navbar = () => {
                       <button
                         onClick={() => toggleSubmenu(index)}
                         className={`px-3 py-2 rounded-md text-sm font-medium
-                          ${isDark ? 'hover:text-white' : 'hover:text-gray-900'}
+                          ${isDark ? 'hover:text-white' : 'hover:text-zinc-900'}
                           ${openSubmenu === index 
                             ? `bg-gradient-to-r ${item.gradient} text-white` 
                             : isDark ? 'text-gray-300' : 'text-gray-700'}`}
@@ -124,7 +124,7 @@ const Navbar = () => {
                                       ? 'text-white bg-gray-700 hover:bg-gray-600' 
                                       : 'text-gray-300 hover:bg-gray-700'
                                     : subItem.highlight
-                                      ? 'text-gray-900 bg-gray-100 hover:bg-gray-200'
+                                      ? 'text-zinc-900 bg-gray-100 hover:bg-gray-200'
                                       : 'text-gray-700 hover:bg-gray-100'
                                   }
                                   ${isActive(subItem.path) ? `bg-gradient-to-r ${item.gradient} text-white` : ''}`}
@@ -151,7 +151,7 @@ const Navbar = () => {
                           ? 'bg-blue-500 text-white'
                           : isDark
                             ? 'text-gray-300 hover:text-white'
-                            : 'text-gray-700 hover:text-gray-900'}`}
+                            : 'text-gray-700 hover:text-zinc-900'}`}
                     >
                       {item.label}
                     </Link>
@@ -162,7 +162,7 @@ const Navbar = () => {
           </div>
 
           {/* Dark Mode Toggle Button */}
-          <button
+          {/* <button
             onClick={toggleTheme}
             className={`p-2 rounded-lg transition-colors duration-200 ${
               isDark
@@ -172,14 +172,14 @@ const Navbar = () => {
             aria-label="Toggle Dark Mode"
           >
             {isDark ? <FaSun className="w-5 h-5" /> : <FaMoon className="w-5 h-5" />}
-          </button>
+          </button> */}
 
           {/* Mobile menu button */}
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
               className={`inline-flex items-center justify-center p-2 rounded-md 
-                ${isDark ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'}
+                ${isDark ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-700 hover:text-zinc-900 hover:bg-gray-100'}
                 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white`}
             >
               <span className="sr-only">Open main menu</span>
@@ -199,7 +199,7 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       <div className={`${isOpen ? 'block' : 'hidden'} md:hidden`}>
-        <div className={`px-2 pt-2 pb-3 space-y-1 sm:px-3 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+        <div className={`px-2 pt-2 pb-3 space-y-1 sm:px-3 ${isDark ? 'bg-zinc-900' : 'bg-white'}`}>
           {navItems.map((item, index) => (
             <div key={index}>
               {item.subItems ? (
@@ -209,7 +209,7 @@ const Navbar = () => {
                     className={`w-full text-left px-3 py-2 rounded-md text-base font-medium
                       ${openSubmenu === index 
                         ? `bg-gradient-to-r ${item.gradient} text-white`
-                        : isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-900 hover:bg-gray-100'}`}
+                        : isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-zinc-900 hover:bg-gray-100'}`}
                   >
                     {item.label}
                   </button>
@@ -225,7 +225,7 @@ const Navbar = () => {
                                 ? 'text-white bg-gray-700 hover:bg-gray-600' 
                                 : 'text-gray-300 hover:bg-gray-700'
                               : subItem.highlight
-                                ? 'text-gray-900 bg-gray-100 hover:bg-gray-200'
+                                ? 'text-zinc-900 bg-gray-100 hover:bg-gray-200'
                                 : 'text-gray-700 hover:bg-gray-100'
                             }
                             ${isActive(subItem.path) ? `bg-gradient-to-r ${item.gradient} text-white` : ''}`}
@@ -253,7 +253,7 @@ const Navbar = () => {
                       ? 'bg-zinc-500 text-white'
                       : isDark
                         ? 'text-gray-300 hover:bg-gray-700'
-                        : 'text-gray-900 hover:bg-gray-100'}`}
+                        : 'text-zinc-900 hover:bg-gray-100'}`}
                   onClick={() => setIsOpen(false)}
                 >
                   {item.label}

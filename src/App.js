@@ -32,7 +32,7 @@ const App = () => {
   return (
     <ThemeProvider>
       <Router>
-        <div className="min-h-screen transition-colors duration-300 dark:bg-gray-900 bg-gray-50 dark:text-white text-gray-900">
+        <div className="min-h-screen transition-colors duration-300 dark:bg-zinc-900 bg-gray-50 dark:text-white text-gray-900">
           <Navbar />
           <main className="container mx-auto px-4 py-8">
             <Routes>
@@ -65,7 +65,7 @@ const App = () => {
               <Route path="/nftscoresinsights" element={<NFTScoresInsights />} />
             </Routes>
           </main>
-          <ThemeToggle />
+          {/* <ThemeToggle /> */}
         </div>
       </Router>
     </ThemeProvider>

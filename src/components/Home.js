@@ -128,7 +128,7 @@ const Home = () => {
   ];
 
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-zinc-800 text-white' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`min-h-screen ${isDark ? 'bg-zinc-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       {/* Animated Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-purple-700/10 animate-pulse"></div>
