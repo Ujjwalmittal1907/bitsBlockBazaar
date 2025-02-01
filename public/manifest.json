@@ -1,9 +1,9 @@
 {
-  "short_name": "NFT Insights",
-  "name": "NFT Insights | Advanced Analytics Dashboard",
+  "short_name": "Bits Block Bazaar",
+  "name": "Bits Block Bazaar | Advanced Analytics Dashboard",
   "icons": [
     {
-      "src": "logo.svg",
+      "src": "logo192.png",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/svg+xml"
     }
